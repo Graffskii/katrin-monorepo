@@ -56,7 +56,7 @@ app.post("/login", async (req, res) => {
     }
     role = admin.role
     const token = generateToken(admin);
-    res.cookie("token", token, { httpOnly: true, sameSite: 'none' });
+    res.cookie("token", token, { httpOnly: true });
     res.json({ username, role });
 });
 
