@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: unless-stopped
+    volumes:
+      - image-storage:/app/static
+      - ./backend/db.sqlite:/app/db.sqlite
+    networks:
+      - app-network
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - image-storage:/images
+    networks:
+      - app-network
+    depends_on:
+      - frontend
+      - backend
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  image-storage:

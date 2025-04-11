@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Катрин</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            primary: '#800020',
+                            secondary: '#FFF5F5'
+                        },
+                        borderRadius: {
+                            'none': '0px',
+                            'sm': '4px',
+                            DEFAULT: '8px',
+                            'md': '12px',
+                            'lg': '16px',
+                            'xl': '20px',
+                            '2xl': '24px',
+                            '3xl': '32px',
+                            'full': '9999px',
+                            'button': '8px'
+                        }
+                    }
+                }
+            }
+        </script>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Pacifico&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap"
+            rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+        <style>
+            :where([class^="ri-"])::before {
+                content: "\f3c2";
+            }
+    
+            .font-playfair {
+                font-family: 'Playfair Display', serif;
+            }
+    
+            .font-poppins {
+                font-family: 'Poppins', sans-serif;
+            }
+        </style>
+    </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/index.js"></script>
+  </body>
+</html>
