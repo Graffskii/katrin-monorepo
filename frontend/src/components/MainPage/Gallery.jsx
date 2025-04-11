@@ -89,7 +89,7 @@ const Gallery = ({ galleryItems }) => {
               {currentItem && (
                 <img 
                   className="absolute inset-0 w-full h-full object-contain" 
-                  src={currentItem.filename.startsWith('/') ? currentItem.filename : `/static/${currentItem.filename}`} 
+                  src={currentItem.filename.startsWith('/') ? currentItem.filename : `/images/${currentItem.filename}`} 
                   alt={currentItem.caption} 
                 />
               )}
