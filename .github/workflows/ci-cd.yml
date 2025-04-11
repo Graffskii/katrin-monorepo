@@ -91,7 +91,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: ".env"
+          source: ".env.backend"
           target: "/home/${{ secrets.SERVER_USER }}/katrin/"
 
       - name: Deploy to production server
