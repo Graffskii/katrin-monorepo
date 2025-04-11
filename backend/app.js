@@ -14,7 +14,7 @@ const cors = require("cors");
 const app = express();
 // Разрешаем запросы с фронтенда
 app.use(cors({
-    origin: "http://localhost", // или твой домен
+    origin: "http://213.171.25.187", // или твой домен
     credentials: true // чтобы куки тоже передавались
 }));
 
