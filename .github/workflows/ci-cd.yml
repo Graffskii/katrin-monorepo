@@ -80,9 +80,9 @@ jobs:
     steps:
       - name: Create .env file on runner
         run: |
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" > .env
-          echo "TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}" >> .env
-          echo "TELEGRAM_CHATID=${{ secrets.TELEGRAM_CHATID }}" >> .env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" > .env.backend
+          echo "TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}" >> .env.backend
+          echo "TELEGRAM_CHATID=${{ secrets.TELEGRAM_CHATID }}" >> .env.backend
 
       - name: Upload .env file to server
         uses: appleboy/scp-action@master
