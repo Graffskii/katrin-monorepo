@@ -92,7 +92,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           source: ".env"
-          target: "/home/${{ secrets.SERVER_USER }}/katrin/backend/"
+          target: "/home/${{ secrets.SERVER_USER }}/katrin/"
 
       - name: Deploy to production server
         uses: appleboy/ssh-action@master
