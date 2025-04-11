@@ -12,7 +12,10 @@ describe("Middleware tests", () => {
         token: "valid-token"
       }
     };
-    const res = {};
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
+    };
     const next = jest.fn();
     
     jwt.verify.mockImplementation((token, secret, callback) => {
@@ -28,12 +31,13 @@ describe("Middleware tests", () => {
       cookies: {}
     };
     const res = {
-      redirect: jest.fn()
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
     };
     const next = jest.fn();
 
     authMiddleware(req, res, next);
-    expect(res.redirect).toHaveBeenCalledWith("/login");
+    expect(res.status).toHaveBeenCalledWith(403);
   });
 
   it("should deny access if role is not admin", () => {
