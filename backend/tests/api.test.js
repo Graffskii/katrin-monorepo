@@ -1,5 +1,6 @@
 const request = require("supertest");
 const app = require("../app");  // Импортируем приложение Express
+const path = require("path")
 
 describe("API routes tests", () => {
   it("should login successfully", async () => {
@@ -29,10 +30,12 @@ describe("API routes tests", () => {
         cookie.startsWith("token=")
     ).split(";")[0].split("=")[1];
 
+    const imagePath = path.join(__dirname, "static", "image.jpg");
+
     const response = await request(app)
         .post("/admin/upload")
         .set("Cookie", `token=${token}`)
-        .attach("image", "/Users/user/projects/katrin-site/tests/static/image.jpg")
+        .attach("image", imagePath)
         .field("category", "Wedding Dresses")
         .field("caption", "Uploaded image");
 
@@ -49,11 +52,12 @@ describe("API routes tests", () => {
           cookie.startsWith("token=")
       ).split(";")[0].split("=")[1];
 
+      const nonImagePath = path.join(__dirname, "static", "non_image.txt");
 
     const response = await request(app)
         .post("/admin/upload")
         .set("Cookie", `token=${token}`)
-        .attach("image", "/Users/user/projects/katrin-site/tests/static/non_image.txt")
+        .attach("image", nonImagePath)
         .field("category", "landscape")
         .field("caption", "Invalid file");
 
