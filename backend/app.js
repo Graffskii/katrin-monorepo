@@ -14,7 +14,7 @@ const cors = require("cors");
 const app = express();
 // Разрешаем запросы с фронтенда
 app.use(cors({
-    origin: "http://localhost:3000", // или твой домен
+    origin: "http://localhost", // или твой домен
     credentials: true // чтобы куки тоже передавались
 }));
 
@@ -56,7 +56,7 @@ app.post("/login", async (req, res) => {
     }
     role = admin.role
     const token = generateToken(admin);
-    res.cookie("token", token, { httpOnly: true, sameSite: 'none', secure: true });
+    res.cookie("token", token, { httpOnly: true, sameSite: 'none' });
     res.json({ username, role });
 });
 
