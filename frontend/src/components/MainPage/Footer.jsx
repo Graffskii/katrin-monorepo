@@ -1,42 +1,53 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
-    <footer className="bg-primary text-white py-12">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="grid md:grid-cols-4 gap-8">
+    <footer className="bg-gray-100 text-gray-700 py-16">
+      <div className="max-w-screen-2xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
+        {/* Адреса */}
+        <div className="space-y-4">
           <div>
-            <a href="#" className="text-3xl font-['Pacifico'] text-white mb-4 block">Katrin</a>
-            <p className="text-white-500/80">Исполняем мечты с 2010</p>
-          </div>
-          <div>
-            <h4 className="font-playfair font-bold mb-4">Ссылки</h4>
-            <ul className="space-y-2">
-              <li><a href="#home" className="text-white/80 hover:text-white">Главная</a></li>
-              <li><a href="#about" className="text-white/80 hover:text-white">О нас</a></li>
-              <li><a href="#gallery" className="text-white/80 hover:text-white">Галерея</a></li>
-              <li><a href="#services" className="text-white/80 hover:text-white">Услуги</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-playfair font-bold mb-4">Время работы</h4>
-            <ul className="space-y-2 text-white/80">
-              <li>Понедельник - Суббота: 10:00 - 19:00</li>
-              <li>Воскресенье: 11:00 - 18:00</li>
-            </ul>
+            <h4 className="font-bold">КАТРИН ТОМСК</h4>
+            <p className="text-sm">ПРОСПЕКТ ЛЕНИНА 95</p>
+            <p className="text-sm">ТЕЛ. 226-34-85</p>
+            <Link to="/contacts" className="text-sm text-primary hover:underline">Смотреть на карте</Link>
           </div>
         </div>
-        <div className="border-t border-white/20 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-white/80">© 2025 Katrin. All rights reserved.</p>
-          <div className="flex space-x-4 mt-4 md:mt-0">
-            <a href="https://www.instagram.com/katrin_salon_tomsk/" className="text-white/80 hover:text-white">
-              <i className="ri-instagram-line"></i>
-            </a>
-            <a href="https://vk.com/club66770999" className="text-white/80 hover:text-white">
-              <i className="ri-vk-line"></i>
-            </a>
-          </div>
+
+        {/* Каталог */}
+        <div>
+          <h4 className="font-bold mb-4">КАТАЛОГ</h4>
+          <ul className="space-y-2 text-sm">
+            <li><Link to="/catalog/wedding-dresses" className="hover:text-primary">Свадебные платья</Link></li>
+            <li><Link to="/catalog/evening-dresses" className="hover:text-primary">Вечерние платья</Link></li>
+            <li><Link to="/catalog/accessories" className="hover:text-primary">Аксессуары</Link></li>
+            {/* ... другие ссылки на категории */}
+          </ul>
         </div>
+        
+        {/* Информация */}
+        <div>
+          <h4 className="font-bold mb-4">ИНФОРМАЦИЯ</h4>
+          <ul className="space-y-2 text-sm">
+            <li><Link to="/services" className="hover:text-primary">Дополнительные услуги</Link></li>
+            <li><Link to="/reviews" className="hover:text-primary">Отзывы</Link></li>
+            <li><Link to="/blog" className="hover:text-primary">Блог</Link></li>
+          </ul>
+        </div>
+        
+        {/* Соцсети */}
+        <div className="flex flex-col items-start">
+            <h4 className="font-bold mb-4">СОЦИАЛЬНЫЕ СЕТИ</h4>
+            <div className="flex gap-3">
+              <a href="#" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-whatsapp-line"></i></a>
+              <a href="#" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-instagram-line"></i></a>
+              <a href="#" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-vk-line"></i></a>
+            </div>
+        </div>
+      </div>
+      <div className="max-w-screen-2xl mx-auto px-4 mt-12 text-center text-xs text-gray-500 border-t pt-8">
+        © 2025 Katrin Bridal Salon. Все права защищены.
       </div>
     </footer>
   );

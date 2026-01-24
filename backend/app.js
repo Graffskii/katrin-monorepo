@@ -13,10 +13,7 @@ const cors = require("cors");
 
 const app = express();
 // Разрешаем запросы с фронтенда
-app.use(cors({
-    origin: "http://213.171.25.187", // или твой домен
-    credentials: true // чтобы куки тоже передавались
-}));
+app.use(cors());
 
 app.use(express.static("public"));
 app.use("/static", express.static("static"));
@@ -92,6 +89,8 @@ app.post("/contact", (req, res) => {
 
 // Админка
 app.use("/admin", require("./routes"));
+
+app.use("/catalog", require("./catalogRoutes"));
 
 if (process.env.NODE_ENV !== 'test') {
     app.listen(3000, () => {

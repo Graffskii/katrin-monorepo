@@ -1,43 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import Header from './Header';
+import Footer from './Footer'; // Путь может быть другим, проверьте
 import Hero from './Hero';
 import About from './About';
-import Gallery from './Gallery';
 import Services from './Services';
 import Contact from './Contact';
-import Footer from './Footer';
+import CategoriesGrid from './CategoriesGrid';
 
 const MainPage = () => {
-  const [galleryItems, setGalleryItems] = useState([]);
-  
+  const [categories, setCategories] = useState([]);
+
   useEffect(() => {
-    // Загрузка данных галереи при монтировании компонента
-    const fetchGallery = async () => {
+    // Загружаем всю структуру каталога для отображения категорий на главной
+    const fetchCatalogData = async () => {
       try {
-        const response = await fetch('/api/');
+        const response = await fetch('/api/catalog/structure');
         if (response.ok) {
-          const data = await response.json()
-          console.log(data)
-          setGalleryItems(data.gallery);
+          const data = await response.json();
+          setCategories(data);
         }
       } catch (error) {
-        console.error('Ошибка загрузки галереи:', error);
+        console.error('Ошибка загрузки структуры каталога:', error);
       }
     };
     
-    fetchGallery();
+    fetchCatalogData();
   }, []);
   
   return (
-    <>
-      <Header />
-      <Hero />
-      <About />
-      <Gallery galleryItems={galleryItems} />
-      <Services />
-      <Contact />
+    <div className="flex flex-col min-h-screen">
+      <Header variant="transparent"/>
+      <main className="flex-grow">
+        <Hero />
+        <CategoriesGrid categories={categories} />
+        <About />
+        <Services />
+        <Contact />
+        {/* Убрали старую галерею и контакты, т.к. они есть в футере/хедере */}
+      </main>
       <Footer />
-    </>
+    </div>
   );
 };
 

@@ -3,7 +3,7 @@ import React from 'react';
 const About = () => {
   return (
     <section id="about" className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4">
+      <div className="max-w-screen-2xl mx-auto px-4">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div className="relative h-[600px] rounded-lg overflow-hidden">
             <img src="https://public.readdy.ai/ai/img_res/054a63c34db8a812adecabd12837183b.jpg"

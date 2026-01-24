@@ -1,0 +1,50 @@
+import React, { useState, useEffect } from 'react';
+import Header from '../components/MainPage/Header';
+import Footer from '../components/MainPage/Footer';
+import CategoriesGrid from '../components/MainPage/CategoriesGrid';
+import { useParams, Link } from 'react-router-dom';
+
+const CatalogLandingPage = () => {
+    const [categories, setCategories] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchCatalogData = async () => {
+            setIsLoading(true);
+            try {
+                const response = await fetch('/api/catalog/structure');
+                const data = await response.json();
+                setCategories(data);
+            } catch (error) {
+                console.error('Ошибка загрузки каталога:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchCatalogData();
+    }, []);
+
+    return (
+        <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-grow pt-24 bg-secondary"> {/* Используем bg-secondary для консистентности */}
+                <div className="max-w-screen-2xl mx-auto px-4 py-16"> {/* Делаем шире */}
+                    <div className="text-sm text-gray-500 mb-8">
+                        <Link to="/" className="hover:text-primary">Главная</Link>
+                        <span className="mx-2">/</span>
+                        <span>Каталог</span>
+                    </div>
+                    <div className="text-center mb-12">
+                        <h1 className="text-5xl font-playfair font-bold">Каталог</h1>
+                        <p className="text-lg text-gray-500 mt-4">Выберите интересующий вас раздел</p>
+                    </div>
+                    {/* --- ЗАМЕНЯЕМ СТАРУЮ ВЕРСТКУ НА ГОТОВЫЙ КОМПОНЕНТ --- */}
+                    {isLoading ? <p className="text-center">Загрузка...</p> : <CategoriesGrid categories={categories} />}
+                </div>
+            </main>
+            <Footer />
+        </div>
+    );
+};
+
+export default CatalogLandingPage;

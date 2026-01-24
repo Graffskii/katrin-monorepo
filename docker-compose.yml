@@ -19,7 +19,7 @@ services:
     container_name: backend
     restart: unless-stopped
     volumes:
-      - image-storage:/app/static
+      - ./public_images:/app/static
       - ./backend/db.sqlite:/app/db.sqlite
     networks:
       - app-network
@@ -35,7 +35,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
-      - image-storage:/images
+      - ./public_images:/images
     networks:
       - app-network
     depends_on:
