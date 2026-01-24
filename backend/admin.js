@@ -28,7 +28,7 @@ function createDatabase(dbPath = 'db.sqlite') {
             role TEXT NOT NULL CHECK(role IN ('admin', 'moderator'))
           )
         `);
-        
+
         // --- НОВЫЕ ТАБЛИЦЫ ДЛЯ КАТАЛОГА V2 ---
         database.run(`
           CREATE TABLE IF NOT EXISTS categories (
@@ -86,7 +86,7 @@ function createDatabase(dbPath = 'db.sqlite') {
 
 
   // --- 2. ФУНКЦИИ ДЛЯ АДМИНИСТРАТОРОВ (Аутентификация и Управление) ---
-  
+
   function getAdmin(username, database = db) {
     return new Promise((resolve, reject) => {
       database.get("SELECT * FROM admins WHERE username = ?", [username], (err, row) => {
@@ -95,7 +95,7 @@ function createDatabase(dbPath = 'db.sqlite') {
       });
     });
   }
-  
+
   async function addAdmin(username, password, role = "moderator", database = db) {
     const hashedPassword = await bcrypt.hash(password, 10);
     return new Promise((resolve, reject) => {
@@ -114,8 +114,8 @@ function createDatabase(dbPath = 'db.sqlite') {
    */
   function getCatalogStructure(database = db) {
     return new Promise((resolve, reject) => {
-        // --- ОБНОВЛЕННЫЙ ЗАПРОС ---
-        const query = `
+      // --- ОБНОВЛЕННЫЙ ЗАПРОС ---
+      const query = `
             SELECT 
                 c.id as category_id, c.name as category_name, c.slug as category_slug, c.cover_image as category_cover_image,
                 s.id as subcategory_id, s.name as subcategory_name, s.slug as subcategory_slug, s.cover_image as subcategory_cover_image
@@ -123,56 +123,68 @@ function createDatabase(dbPath = 'db.sqlite') {
             LEFT JOIN subcategories s ON c.id = s.category_id
             ORDER BY c.id, s.id;
         `;
-        database.all(query, [], (err, rows) => {
-            if (err) return reject(err);
+      database.all(query, [], (err, rows) => {
+        if (err) return reject(err);
 
-            const structure = {};
-            rows.forEach(row => {
-                if (!structure[row.category_id]) {
-                    structure[row.category_id] = {
-                        id: row.category_id,
-                        name: row.category_name,
-                        slug: row.category_slug,
-                        cover_image: row.category_cover_image, // <-- Добавили
-                        subcategories: []
-                    };
-                }
-                if (row.subcategory_id) {
-                    structure[row.category_id].subcategories.push({
-                        id: row.subcategory_id,
-                        name: row.subcategory_name,
-                        slug: row.subcategory_slug,
-                        cover_image: row.subcategory_cover_image // <-- Добавили
-                    });
-                }
+        const structure = {};
+        rows.forEach(row => {
+          if (!structure[row.category_id]) {
+            structure[row.category_id] = {
+              id: row.category_id,
+              name: row.category_name,
+              slug: row.category_slug,
+              cover_image: row.category_cover_image, // <-- Добавили
+              subcategories: []
+            };
+          }
+          if (row.subcategory_id) {
+            structure[row.category_id].subcategories.push({
+              id: row.subcategory_id,
+              name: row.subcategory_name,
+              slug: row.subcategory_slug,
+              cover_image: row.subcategory_cover_image // <-- Добавили
             });
-            resolve(Object.values(structure));
+          }
         });
+        resolve(Object.values(structure));
+      });
     });
   }
-  
+
   /**
    * Получает информацию о подкатегории и список всех опубликованных товаров в ней.
    */
   function getSubCategoryWithProducts(slug, database = db) {
     return new Promise((resolve, reject) => {
-        database.get("SELECT * FROM subcategories WHERE slug = ?", [slug], (err, subcategory) => {
-            if (err) return reject(err);
-            if (!subcategory) return resolve(null); // Не найдена
+      const subcategoryQuery = `
+            SELECT 
+                s.*,
+                c.name as category_name,
+                c.slug as category_slug
+            FROM subcategories s
+            JOIN categories c ON s.category_id = c.id
+            WHERE s.slug = ?
+        `;
+      database.get(subcategoryQuery, [slug], (err, subcategory) => {
+        if (err) return reject(err);
+        if (!subcategory) return resolve(null);
 
-            const query = `
+        // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+        const productsQuery = `
                 SELECT 
                     p.*,
                     (SELECT filename FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as main_image
                 FROM products p
                 WHERE p.subcategory_id = ? AND p.is_published = 1
-            `;
-            database.all(query, [subcategory.id], (err, products) => {
-                if (err) return reject(err);
-                subcategory.products = products;
-                resolve(subcategory);
-            });
+            `; // Мы явно указали "p.id"
+        // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+
+        database.all(productsQuery, [subcategory.id], (err, products) => {
+          if (err) return reject(err);
+          subcategory.products = products;
+          resolve(subcategory);
         });
+      });
     });
   }
 
@@ -181,8 +193,8 @@ function createDatabase(dbPath = 'db.sqlite') {
    */
   function getProductDetails(productId, database = db) {
     return new Promise((resolve, reject) => {
-        // --- НОВЫЙ, УЛУЧШЕННЫЙ ЗАПРОС ---
-        const query = `
+      // --- НОВЫЙ, УЛУЧШЕННЫЙ ЗАПРОС ---
+      const query = `
             SELECT
                 p.*,
                 s.name as subcategory_name,
@@ -194,20 +206,20 @@ function createDatabase(dbPath = 'db.sqlite') {
             LEFT JOIN categories c ON s.category_id = c.id
             WHERE p.id = ? AND p.is_published = 1
         `;
-        database.get(query, [productId], (err, product) => {
-            if (err) return reject(err);
-            if (!product) return resolve(null);
+      database.get(query, [productId], (err, product) => {
+        if (err) return reject(err);
+        if (!product) return resolve(null);
 
-            const imagesQuery = "SELECT filename FROM product_images WHERE product_id = ? ORDER BY sort_order ASC";
-            database.all(imagesQuery, [productId], (err, images) => {
-                if (err) return reject(err);
-                product.images = images.map(img => img.filename);
-                resolve(product);
-            });
+        const imagesQuery = "SELECT filename FROM product_images WHERE product_id = ? ORDER BY sort_order ASC";
+        database.all(imagesQuery, [productId], (err, images) => {
+          if (err) return reject(err);
+          product.images = images.map(img => img.filename);
+          resolve(product);
         });
+      });
     });
   }
-  
+
   // --- 4. ФУНКЦИИ ДЛЯ АДМИН-ПАНЕЛИ (CRUD - Create, Read, Update, Delete) ---
   // (Пока что здесь будут заглушки, мы их реализуем, когда будем делать админку)
 

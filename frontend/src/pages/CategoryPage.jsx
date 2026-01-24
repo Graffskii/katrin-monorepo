@@ -4,9 +4,9 @@ import Header from '../components/MainPage/Header';
 import Footer from '../components/MainPage/Footer';
 
 const SubCategoryCard = ({ subcategory, parentSlug }) => (
-    <Link to={`/catalog/${parentSlug}/${subcategory.slug}`} className="relative block h-96 group overflow-hidden rounded-md">
-        <img 
-            src={`/images/${subcategory.cover_image}`} 
+    <Link to={`/catalog/${parentSlug}/${subcategory.slug}`} className="relative block h-auto aspect-[10/16] group overflow-hidden rounded-md">
+        <img
+            src={`/images/${subcategory.cover_image}`}
             alt={subcategory.name}
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
@@ -49,6 +49,13 @@ const CategoryPage = () => {
             <Header />
             <main className="flex-grow pt-24 bg-white">
                 <div className="max-w-screen-2xl mx-auto px-4 py-16">
+                    <div className="text-sm text-gray-500 mb-8">
+                        <Link to="/" className="hover:text-primary">Главная</Link>
+                        <span className="mx-2">/</span>
+                        <Link to="/catalog" className="hover:text-primary">Каталог</Link>
+                        <span className="mx-2">/</span>
+                        <span>{category.name}</span>
+                    </div>
                     <div className="text-center mb-12">
                         <h1 className="text-5xl font-playfair font-bold">{category.name}</h1>
                         <p className="text-lg text-gray-500 mt-4">{category.description}</p>

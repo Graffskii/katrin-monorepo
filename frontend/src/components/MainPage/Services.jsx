@@ -2,7 +2,7 @@ import React from 'react';
 
 const Services = () => {
   return (
-    <section id="services" className="py-24 bg-white">
+    <section id="services" className="py-16 bg-white">
       <div className="max-w-screen-2xl mx-auto px-4">
         <h2 className="text-4xl font-playfair font-bold text-center text-gray-900 mb-12">Наши услуги</h2>
         <div className="grid md:grid-cols-3 gap-8">

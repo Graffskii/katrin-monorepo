@@ -26,7 +26,7 @@ const Header = ({ variant }) => {
   return (
     <header className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 shadow-md backdrop-blur-sm' : 'bg-transparent'}`}>
       {/* Верхняя информационная панель */}
-      <div className="bg-gray-100 text-gray-600 text-sm hidden md:block">
+      <div className="bg-gray-100 text-gray-600 text-base hidden md:block">
         <div className="max-w-screen-2xl mx-auto px-4 py-2 flex justify-between items-center">
           <div className="flex gap-8">
             <div>
@@ -45,7 +45,7 @@ const Header = ({ variant }) => {
       {/* Основная навигационная панель */}
       <div className="max-w-screen-2xl mx-auto px-4">
         <div className="flex justify-between items-center h-20">
-          <nav className="hidden lg:flex items-center gap-6 text-sm font-medium uppercase tracking-wider">
+          <nav className="hidden lg:flex items-center gap-6 text-base font-medium uppercase tracking-wider">
             <NavLink to="/catalog/wedding-dresses" className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}>Свадебные платья</NavLink>
             <NavLink to="/catalog/evening-dresses" className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}>Вечерние платья</NavLink>
             <NavLink to="/catalog" end className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}>Каталог</NavLink>
@@ -58,7 +58,7 @@ const Header = ({ variant }) => {
             </Link>
           </div>
           
-          <div className="hidden lg:flex items-center gap-6 text-sm font-medium uppercase tracking-wider">
+          <div className="hidden lg:flex items-center gap-6 text-base font-medium uppercase tracking-wider">
             <NavLink to="/reviews" className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}>Отзывы</NavLink>
             <NavLink to="/contacts" className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}>Контакты</NavLink>
             <Link to="/appointment" className="bg-primary/10 text-primary px-4 py-2 rounded-md hover:bg-primary/20 transition-colors">

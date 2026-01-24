@@ -7,7 +7,7 @@ const Hero = () => {
       <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent"></div>
       <div className="relative max-w-7xl mx-auto px-4 py-32">
         <div className="max-w-2xl">
-          <h1 className="text-6xl font-playfair font-bold text-white mb-6">Ваша Идеальная Свадьба Начинается Здесь</h1>
+          <h1 className="text-7xl font-playfair font-bold text-white mb-6">Ваша Идеальная Свадьба Начинается Здесь</h1>
           <p className="text-xl text-white/90 mb-8">Ощутите роскошь и элегантность в нашем свадебном салоне. Где
             мечты становятся реальностью.</p>
           <a

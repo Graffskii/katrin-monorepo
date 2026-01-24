@@ -27,19 +27,24 @@ const CatalogLandingPage = () => {
     return (
         <div className="flex flex-col min-h-screen">
             <Header />
-            <main className="flex-grow pt-24 bg-secondary"> {/* Используем bg-secondary для консистентности */}
-                <div className="max-w-screen-2xl mx-auto px-4 py-16"> {/* Делаем шире */}
+            {/* --- ИЗМЕНЯЕМ ФОН И СТРУКТУРУ --- */}
+            <main className="flex-grow pt-24 bg-secondary">
+                <div className="max-w-screen-2xl mx-auto px-4 py-16">
                     <div className="text-sm text-gray-500 mb-8">
                         <Link to="/" className="hover:text-primary">Главная</Link>
                         <span className="mx-2">/</span>
                         <span>Каталог</span>
                     </div>
                     <div className="text-center mb-12">
-                        <h1 className="text-5xl font-playfair font-bold">Каталог</h1>
-                        <p className="text-lg text-gray-500 mt-4">Выберите интересующий вас раздел</p>
+                        <h1 className="text-5xl font-playfair font-bold text-gray-800">Каталог</h1>
+                        <p className="text-lg text-gray-600 mt-4">Выберите интересующий вас раздел</p>
                     </div>
-                    {/* --- ЗАМЕНЯЕМ СТАРУЮ ВЕРСТКУ НА ГОТОВЫЙ КОМПОНЕНТ --- */}
-                    {isLoading ? <p className="text-center">Загрузка...</p> : <CategoriesGrid categories={categories} />}
+                    {isLoading ? (
+                        <p className="text-center">Загрузка...</p>
+                    ) : (
+                        // Используем наш универсальный компонент, который уже имеет вытянутые карточки
+                        <CategoriesGrid categories={categories} />
+                    )}
                 </div>
             </main>
             <Footer />

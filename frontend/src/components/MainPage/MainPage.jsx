@@ -23,17 +23,21 @@ const MainPage = () => {
         console.error('Ошибка загрузки структуры каталога:', error);
       }
     };
-    
+
     fetchCatalogData();
   }, []);
-  
+
   return (
     <div className="flex flex-col min-h-screen">
-      <Header variant="transparent"/>
+      <Header variant="transparent" />
       <main className="flex-grow">
         <Hero />
-        <CategoriesGrid categories={categories} />
-        <About />
+        <div className="mt-16"> {/* <-- ИЗМЕНЕНИЕ ЗДЕСЬ. Можете поиграть со значением (mt-12, mt-20) */}
+          <CategoriesGrid categories={categories} />
+        </div>
+        <div className="mt-16"> {/* <-- ИЗМЕНЕНИЕ ЗДЕСЬ */}
+          <About />
+        </div>
         <Services />
         <Contact />
         {/* Убрали старую галерею и контакты, т.к. они есть в футере/хедере */}
