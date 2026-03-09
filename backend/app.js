@@ -38,57 +38,57 @@ app.get("/", async (req, res) => {
 });
 
 // **Страница входа**
-app.get("/login", (req, res) => {
-    res.json({success: true});
-});
+// app.get("/login", (req, res) => {
+//     res.json({success: true});
+// });
 
 // **Обработка входа**
-app.post("/login", async (req, res) => {
-    const { username, password } = req.body;
-    const admin = await getAdmin(username);
+// app.post("/login", async (req, res) => {
+//     const { username, password } = req.body;
+//     const admin = await getAdmin(username);
     
 
-    if (!admin || !(await bcrypt.compare(password, admin.password))) {
-        return res.status(401).send("Неверный логин или пароль");
-    }
-    role = admin.role
-    const token = generateToken(admin);
-    res.cookie("token", token, { httpOnly: true });
-    res.json({ username, role });
-});
+//     if (!admin || !(await bcrypt.compare(password, admin.password))) {
+//         return res.status(401).send("Неверный логин или пароль");
+//     }
+//     role = admin.role
+//     const token = generateToken(admin);
+//     res.cookie("token", token, { httpOnly: true });
+//     res.json({ username, role });
+// });
 
 // **Выход**
-app.get("/logout", (req, res) => {
-    res.clearCookie("token");
-    res.json({ message: "Выход выполнен" });
-});
+// app.get("/logout", (req, res) => {
+//     res.clearCookie("token");
+//     res.json({ message: "Выход выполнен" });
+// });
 
 
 // Обработка формы записи
-app.post("/contact", (req, res) => {
-    const { name, number, message } = req.body;
-    console.log(req.body)
-    let http = require('request')
-    let msg = `Имя: ${name}\nТелефон: ${number}\nСообщение: ${message}`
-    console.log(msg)
-    msg = encodeURI(msg)
+// app.post("/contact", (req, res) => {
+//     const { name, number, message } = req.body;
+//     console.log(req.body)
+//     let http = require('request')
+//     let msg = `Имя: ${name}\nТелефон: ${number}\nСообщение: ${message}`
+//     console.log(msg)
+//     msg = encodeURI(msg)
 
-    http.post(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage?chat_id=${process.env.TELEGRAM_CHATID}&parse_mode=html&text=${msg}`,
-    function (error, response, body) {  
-        console.log('error:', error); 
-        console.log('statusCode:', response && response.statusCode); 
-        console.log('body:', body); 
-        if(response.statusCode===200){
-            res.json({ success: true });
-        }
-        if(response.statusCode!==200){
-            res.status(400).json({ error: "Не удалось отправить сообщение" });
-        }
-      });
-});
+//     http.post(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage?chat_id=${process.env.TELEGRAM_CHATID}&parse_mode=html&text=${msg}`,
+//     function (error, response, body) {  
+//         console.log('error:', error); 
+//         console.log('statusCode:', response && response.statusCode); 
+//         console.log('body:', body); 
+//         if(response.statusCode===200){
+//             res.json({ success: true });
+//         }
+//         if(response.statusCode!==200){
+//             res.status(400).json({ error: "Не удалось отправить сообщение" });
+//         }
+//       });
+// });
 
 // Админка
-app.use("/admin", require("./routes"));
+// app.use("/admin", require("./routes"));
 
 app.use("/catalog", require("./catalogRoutes"));
 
