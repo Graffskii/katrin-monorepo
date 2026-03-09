@@ -6,7 +6,7 @@ const About = () => {
       <div className="max-w-screen-2xl mx-auto px-4">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div className="relative h-[600px] rounded-lg overflow-hidden">
-            <img src="https://public.readdy.ai/ai/img_res/054a63c34db8a812adecabd12837183b.jpg"
+            <img src="../../../images/mainpage/about.jpg"
               className="absolute inset-0 w-full h-full object-cover" alt="Salon Interior" />
           </div>
           <div className='text-base lg:text-2xl'>
