@@ -5,6 +5,7 @@ import AdminPanel from './components/Admin/AdminPanel';
 import Login from './components/Auth/Login';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { FavoritesProvider } from './contexts/FavoritesContext';
+import ScrollToTop from './components/ScrollToTop';
 
 import ProductDetailPage from './pages/ProductDetailPage';
 import FloatingWidgets from './components/FloatingWidgets';
@@ -14,6 +15,8 @@ import ProductListPage from './pages/ProductListPage';
 import CatalogLandingPage from './pages/CatalogLandingPage';
 import AppointmentPage from './pages/AppointmentPage';
 import ContactsPage from './pages/ContactsPage';
+import ServicesPage from './pages/ServicePage';
+import ReviewsPage from './pages/ReviewsPage';
 //import './assets/styles.css';
 
 // Защищенный маршрут для админ-панели
@@ -32,6 +35,7 @@ function App() {
     <AuthProvider>
       <FavoritesProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <div className="relative">
             <Routes>
               <Route path="/" element={<MainPage />} />
@@ -45,6 +49,10 @@ function App() {
 
               <Route path="/appointment" element={<AppointmentPage />} />
               <Route path="/contacts" element={<ContactsPage />} />
+
+              <Route path="/services" element={<ServicesPage />} />
+              <Route path="/reviews" element={<ReviewsPage />} />
+
 
               <Route path="/login" element={<Login />} />
               <Route path="/admin" element={

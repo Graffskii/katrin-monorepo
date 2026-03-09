@@ -2,7 +2,7 @@ import React from 'react';
 
 const Services = () => {
   return (
-    <section id="services" className="py-16 bg-white">
+    <section id="services" className="py-16 lg:text-2xl">
       <div className="max-w-screen-2xl mx-auto px-4">
         <h2 className="text-4xl font-playfair font-bold text-center text-gray-900 mb-12">Наши услуги</h2>
         <div className="grid md:grid-cols-3 gap-8">
@@ -10,7 +10,7 @@ const Services = () => {
             <div className="w-12 h-12 flex items-center justify-center text-primary text-2xl mb-6">
               <i className="ri-heart-line"></i>
             </div>
-            <h3 className="text-xl font-playfair font-bold text-gray-900 mb-4">Примерка по записи</h3>
+            <h3 className="font-bold text-gray-900 mb-4">Примерка по записи</h3>
             <p className="text-gray-600 mb-6">Вы сможете примерить любые понравившиеся Вам платья без спешки и суеты. </p>
             <p className="text-primary font-semibold mb-4">Вы обязательно найдете платье по вкусу</p>
           </div>

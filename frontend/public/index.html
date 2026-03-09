@@ -12,7 +12,9 @@
                 extend: {
                     colors: {
                         primary: '#800020',
-                        secondary: '#FFF5F5'
+                        secondary: '#FFF5F5',
+                        'text-main': '#4B5563', // Текст (gray-600)
+                        'text-dark': '#1F2937', // Заголовки (gray-800)
                     },
                     borderRadius: {
                         'none': '0px',
@@ -61,12 +63,26 @@
             scroll-behavior: smooth;
         }
         body {
-            font-family: 'Poppins', sans-serif; /* Применяем Poppins ко всему сайту */
-            color: #ffffff; /* Более мягкий черный, чем стандартный */
+            font-family: 'Poppins', sans-serif;
+            color: #4B5563; /* Это наш 'text-main' */
+            font-weight: 300; /* font-light - тонкое начертание по умолчанию */
+            line-height: 2.3; /* leading-relaxed - бОльший межстрочный интервал */
+            -webkit-font-smoothing: antialiased; /* Делает шрифты тоньше и четче на Mac */
+            -moz-osx-font-smoothing: grayscale;
         }
         h1, h2, h3, h4, h5, h6 {
-            font-family: 'Playfair Display', serif; /* Применяем Playfair ко всем заголовкам */
-            color: #ffffff; /* Более темный цвет для заголовков */
+            font-family: 'Playfair Display', serif;
+            color: #1F2937; /* Это наш 'text-dark' */
+            font-weight: 700; /* Жирное начертание для заголовков */
+            line-height: 1.2; /* Более плотный интервал для крупных текстов */
+        }
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.7; /* Отступ после абзацев, как в prose */
+        }
+        strong, b {
+            font-weight: 600; /* Полужирный, не слишком толстый */
+            color: #374151; /* Чуть темнее основного текста */
         }
     </style>
 </head>

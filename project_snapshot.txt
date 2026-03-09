@@ -1,0 +1,3773 @@
+frontend/Dockerfile
+
+# Этап сборки
+FROM node:23 as build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+# Этап продакшена
+FROM nginx:alpine
+
+# Копируем результат сборки из предыдущего этапа
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Копируем кастомную конфигурацию nginx если нужно
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+
+______
+
+frontend/public/index.html
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Катрин</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#800020',
+                        secondary: '#FFF5F5'
+                    },
+                    borderRadius: {
+                        'none': '0px',
+                        'sm': '4px',
+                        DEFAULT: '8px',
+                        'md': '12px',
+                        'lg': '16px',
+                        'xl': '20px',
+                        '2xl': '24px',
+                        '3xl': '32px',
+                        'full': '9999px',
+                        'button': '8px'
+                    },
+                    screens: {
+                        '2xl': '1600px', // Делаем самый большой breakpoint еще шире
+                    },
+                    fontFamily: {
+                        'playfair': ['Playfair Display', 'serif'],
+                        'poppins': ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Pacifico&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        :where([class^="ri-"])::before {
+            content: "\f3c2";
+        }
+
+        .font-playfair {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .font-poppins {
+            font-family: 'Poppins', sans-serif;
+        }
+
+        html {
+            font-size: 16px; /* Убедимся, что базовый размер установлен */
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Poppins', sans-serif; /* Применяем Poppins ко всему сайту */
+            color: #ffffff; /* Более мягкий черный, чем стандартный */
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Playfair Display', serif; /* Применяем Playfair ко всем заголовкам */
+            color: #ffffff; /* Более темный цвет для заголовков */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="module" src="/src/index.js"></script>
+</body>
+
+</html>
+______
+
+frontend/package.json
+
+{
+  "name": "katrin-react-app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.3",
+    "react-scripts": "^5.0.1",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
+
+______
+
+frontend/nginx.conf
+
+server {
+    listen 80;
+    
+    location / {
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+        # Важно! Это перенаправляет все запросы на index.html
+        try_files $uri $uri/ /index.html;
+    }
+    
+    # Кэширование для статических ресурсов
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        root /usr/share/nginx/html;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
+        access_log off;
+    }
+    
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
+    }
+}
+______
+
+frontend/src/contexts/AuthContext.jsx
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+
+const AuthContext = createContext(null);
+
+export const useAuth = () => useContext(AuthContext);
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Проверка наличия пользователя в localStorage при загрузке
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setLoading(false);
+  }, []);
+
+  const login = async (username, password) => {
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Неверные учетные данные');
+      }
+      const userData = await response.json();
+      console.log(userData)
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('role', JSON.stringify(userData));
+      return userData;
+    } catch (error) {
+      console.error('Ошибка входа:', error);
+      throw error;
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+    fetch('/api/logout', { method: 'GET' });
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
+};
+______
+
+frontend/src/contexts/FavoritesContext.jsx
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+
+// Создаем контекст с null в качестве значения по умолчанию
+const FavoritesContext = createContext(null);
+
+// Создаем кастомный хук, который будет проверять, используется ли он внутри провайдера
+export const useFavorites = () => {
+    const context = useContext(FavoritesContext);
+    if (context === null) {
+        throw new Error("useFavorites должен использоваться внутри FavoritesProvider");
+    }
+    return context;
+};
+
+const getInitialFavorites = () => {
+    try {
+        const storedFavorites = localStorage.getItem('favorites');
+        return storedFavorites ? JSON.parse(storedFavorites) : [];
+    } catch (error) {
+        console.error("Ошибка чтения избранного из localStorage:", error);
+        return [];
+    }
+};
+
+export const FavoritesProvider = ({ children }) => {
+    const [favorites, setFavorites] = useState(getInitialFavorites);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+        } catch (error) {
+            console.error("Ошибка записи избранного в localStorage:", error);
+        }
+    }, [favorites]);
+
+    const toggleFavorite = (productId) => {
+        setFavorites(prev =>
+            prev.includes(productId)
+                ? prev.filter(id => id !== productId)
+                : [...prev, productId]
+        );
+    };
+
+    const isFavorite = (productId) => {
+        return favorites.includes(productId);
+    };
+
+    const value = {
+        favorites,
+        toggleFavorite,
+        isFavorite,
+        favoritesCount: favorites.length
+    };
+
+    return (
+        <FavoritesContext.Provider value={value}>
+            {children}
+        </FavoritesContext.Provider>
+    );
+};
+______
+
+frontend/src/index.js
+
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+//import './index.css'
+import App from './App.jsx'
+
+createRoot(document.getElementById('root')).render(
+    <App />,
+)
+
+______
+
+frontend/src/components/Auth/Login.jsx
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+
+const Login = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    try {
+      await login(username, password); // предполагается, что login() внутри AuthContext делает запрос к бэку
+      navigate('/admin');
+    } catch (err) {
+        console.log(err)
+      setError('Неверный логин или пароль');
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-center h-screen bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-md w-96">
+        <h2 className="text-2xl font-bold mb-4 text-center">Вход в админ-панель</h2>
+        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-gray-700 mb-1">Логин</label>
+            <input 
+              type="text" 
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required 
+              className="w-full p-2 border rounded" 
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 mb-1">Пароль</label>
+            <input 
+              type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required 
+              className="w-full p-2 border rounded" 
+            />
+          </div>
+          <button 
+            type="submit" 
+            className="bg-blue-500 text-white w-full py-2 rounded hover:bg-blue-600 transition"
+          >
+            Войти
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
+
+______
+
+frontend/src/components/catalog/ProductCard.jsx
+
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+// В будущем мы будем передавать сюда данные из FavoritesContext
+const ProductCard = ({ product, isFavorite, onToggleFavorite }) => {
+  const imageUrl = product.main_image ? `/images/${product.main_image}` : 'https://via.placeholder.com/500x700';
+
+  return (
+    <div className="group relative">
+      <Link to={`/products/${product.id}`} className="block">
+        <div className="aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-200">
+          <img
+            src={imageUrl}
+            alt={product.name}
+            className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
+          />
+        </div>
+        <div className="mt-4 flex justify-between">
+          <div>
+            <h3 className="text-sm text-gray-700 font-medium">
+              {product.name}
+            </h3>
+            <p className="mt-1 text-xs text-gray-500">{product.sku}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-semibold text-gray-900">
+              {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(product.price)}
+            </p>
+            {product.old_price && (
+              <p className="text-xs text-gray-500 line-through">
+                {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(product.old_price)}
+              </p>
+            )}
+          </div>
+        </div>
+      </Link>
+      
+      {/* Кнопка "Избранное" */}
+      <button 
+        onClick={() => onToggleFavorite(product.id)}
+        className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/70 rounded-full backdrop-blur-sm transition hover:bg-white"
+        aria-label="Добавить в избранное"
+      >
+        <svg className="w-5 h-5" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 010-6.364z" />
+        </svg>
+      </button>
+    </div>
+  );
+};
+
+export default ProductCard;
+______
+
+frontend/src/components/catalog/CollectionCard.jsx
+
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+const CollectionCard = ({ collection }) => {
+  // Заглушка, если изображение не загрузилось
+  const imageUrl = collection.cover_image ? `/images/${collection.cover_image}` : 'https://via.placeholder.com/600x800';
+
+  return (
+    <Link to={`/collections/${collection.id}`} className="group relative block w-full h-96 rounded-lg overflow-hidden shadow-lg">
+      {/* Фоновое изображение */}
+      <img 
+        src={imageUrl} 
+        alt={collection.name} 
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+      />
+      {/* Градиент для читаемости текста */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
+      
+      {/* Текст */}
+      <div className="absolute bottom-0 left-0 p-6 text-white">
+        <h2 className="text-3xl font-playfair font-bold mb-2">{collection.name}</h2>
+        <p className="font-poppins opacity-90">{collection.description}</p>
+        <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <span className="font-semibold">Смотреть коллекцию →</span>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+export default CollectionCard;
+______
+
+frontend/src/components/Admin/AdminPanel.jsx
+
+import React, { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import CreateModerator from './CreateModerator';
+import UploadForm from './UploadForm';
+import GalleryManager from './GalleryManager';
+
+// Иконки для навигации (используем стандартные эмодзи, при желании можно заменить на SVG)
+const ICONS = {
+    dashboard: '📊',
+    addModerator: '👥',
+    upload: '📷',
+    gallery: '🖼️',
+    logout: '🚪'
+  };
+
+const AdminPanel = () => {
+  const { user, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  const handlePublish = async () => {
+    try {
+      const response = await fetch('/api/admin/publish', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (response.ok) {
+        alert('Изменения успешно опубликованы');
+      } else {
+        alert('Ошибка при публикации');
+      }
+    } catch (error) {
+      console.error('Ошибка публикации:', error);
+      alert('Ошибка при публикации');
+    }
+  };
+
+  // Навигационные вкладки
+  const navItems = [
+    { id: 'dashboard', label: 'Панель управления', icon: ICONS.dashboard },
+    ...(user && user.role === 'admin' ? [{ id: 'addModerator', label: 'Добавить модератора', icon: ICONS.addModerator }] : []),
+    { id: 'upload', label: 'Загрузить фото', icon: ICONS.upload },
+    { id: 'gallery', label: 'Управление галереей', icon: ICONS.gallery },
+  ];
+
+  // Рендеринг активного контента в зависимости от вкладки
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return (
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-2xl font-playfair font-bold mb-4">Панель управления</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-blue-100 p-4 rounded-lg shadow">
+                <h3 className="font-bold mb-2">Быстрые действия</h3>
+                <button 
+                  onClick={handlePublish}
+                  className="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-all mt-2"
+                >
+                  Опубликовать изменения
+                </button>
+              </div>
+              <div className="bg-purple-100 p-4 rounded-lg shadow">
+                <h3 className="font-bold mb-2">Пользователь</h3>
+                <p>Роль: {user?.role || 'Неизвестно'}</p>
+                <p>Имя: {user?.username || 'Неизвестно'}</p>
+              </div>
+              <div className="bg-amber-100 p-4 rounded-lg shadow">
+                <h3 className="font-bold mb-2">Справка</h3>
+                <p>Для загрузки фотографий перейдите во вкладку "Загрузить фото"</p>
+              </div>
+            </div>
+          </div>
+        );
+      case 'addModerator':
+        return <CreateModerator />;
+      case 'upload':
+        return <UploadForm />;
+      case 'gallery':
+        return <GalleryManager />;
+      default:
+        return <div>Выберите раздел</div>;
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen bg-gray-100 font-poppins">
+      {/* Боковая панель */}
+      <div className="w-64 bg-gray-800 text-white min-h-screen shadow-lg">
+        <div className="p-4 border-b border-gray-700">
+          <h1 className="text-xl font-playfair font-bold">Админ-панель</h1>
+          <p className="text-gray-400 text-sm">{user?.role === 'admin' ? 'Администратор' : 'Модератор'}</p>
+        </div>
+        
+        <nav className="mt-4">
+          <ul>
+            {navItems.map((item) => (
+              <li key={item.id}>
+                <button
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full text-left px-4 py-3 flex items-center space-x-3 hover:bg-gray-700 transition-colors ${
+                    activeTab === item.id ? 'bg-gray-700 border-l-4 border-blue-500' : ''
+                  }`}
+                >
+                  <span className="text-lg">{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              </li>
+            ))}
+            <li className="mt-4">
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-3 flex items-center space-x-3 text-red-300 hover:bg-gray-700 hover:text-red-200 transition-colors"
+              >
+                <span className="text-lg">{ICONS.logout}</span>
+                <span>Выйти</span>
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      {/* Основной контент */}
+      <div className="flex-1 p-8 overflow-auto">
+        <div className="max-w-5xl mx-auto">
+          {renderContent()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminPanel;
+______
+
+frontend/src/components/Admin/CreateModerator.jsx
+
+import React, { useState } from 'react';
+
+const CreateModerator = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/admin/create-moderator', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+      
+      if (response.ok) {
+        setMessage('Модератор успешно создан');
+        setUsername('');
+        setPassword('');
+      } else {
+        const errorData = await response.json();
+        setMessage(errorData.message || 'Ошибка при создании модератора');
+      }
+    } catch (error) {
+      console.error('Ошибка:', error);
+      setMessage('Ошибка при создании модератора');
+    }
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-playfair font-bold mt-8">Создать нового модератора</h2>
+      {message && (
+        <div className={`mt-4 p-2 ${message.includes('успешно') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {message}
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <div>
+          <label className="block">Имя пользователя:</label>
+          <input 
+            type="text" 
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="border p-2 w-full" 
+            required 
+          />
+        </div>
+        <div>
+          <label className="block">Пароль:</label>
+          <input 
+            type="password" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="border p-2 w-full" 
+            required 
+          />
+        </div>
+        <button 
+          type="submit"
+          className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition-all"
+        >
+          Создать модератора
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default CreateModerator;
+______
+
+frontend/src/components/Admin/UploadForm.jsx
+
+import React, { useState } from 'react';
+
+const UploadForm = () => {
+  const [category, setCategory] = useState('Wedding Dresses');
+  const [file, setFile] = useState(null);
+  const [caption, setCaption] = useState('');
+  const [message, setMessage] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!file) {
+      setMessage('Выберите файл для загрузки');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('category', category);
+    formData.append('image', file);
+    formData.append('caption', caption);
+
+    setIsUploading(true);
+
+    try {
+      const response = await fetch('/api/admin/upload', {
+        method: 'POST',
+        credentials: "include",
+        body: formData,
+      });
+
+      if (response.ok) {
+        setMessage('Фотография успешно загружена');
+        setFile(null);
+        setCaption('');
+        // Сбросить input файла
+        document.getElementById('fileInput').value = '';
+      } else {
+        const errorData = await response.json();
+        setMessage(errorData.message || 'Ошибка при загрузке фотографии');
+      }
+    } catch (error) {
+      console.error('Ошибка:', error);
+      setMessage('Ошибка при загрузке фотографии');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-playfair font-bold mt-8">Загрузить фотографию</h2>
+      {message && (
+        <div className={`mt-4 p-2 ${message.includes('успешно') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {message}
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <div>
+          <label className="block">Выберите категорию:</label>
+          <select 
+            value={category} 
+            onChange={(e) => setCategory(e.target.value)}
+            className="border p-2 w-full"
+          >
+            <option value="Wedding Dresses">Свадебные платья</option>
+            <option value="Evening Dresses">Вечерние платья</option>
+            <option value="Decorations">Декорации</option>
+          </select>
+        </div>
+        <div>
+          <label className="block">Загрузите изображение:</label>
+          <input 
+            id="fileInput"
+            type="file" 
+            onChange={handleFileChange}
+            className="border p-2 w-full" 
+          />
+        </div>
+        <div>
+          <label className="block">Описание:</label>
+          <input 
+            type="text" 
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            className="border p-2 w-full" 
+          />
+        </div>
+        <button 
+          type="submit"
+          disabled={isUploading || !file}
+          className={`${isUploading || !file ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'} text-white px-6 py-2 rounded transition-all`}
+        >
+          {isUploading ? 'Загрузка...' : 'Добавить'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default UploadForm;
+______
+
+frontend/src/components/Admin/GalleryManager.jsx
+
+import React, { useState, useEffect } from 'react';
+
+const GalleryManager = () => {
+    const [gallery, setGallery] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const [updatedGallery, setUpdatedGallery] = useState([]);
+
+    const handleInputChange = (e, id, field) => {
+        const updatedData = gallery.map(item => {
+            if (item.id === id) {
+                return { ...item, [field]: e.target.value };
+            }
+            return item;
+        });
+        setUpdatedGallery(updatedData); // обновляем локальное состояние
+    };
+
+    const handleSave = async (id) => {
+        const itemToSave = updatedGallery.find(item => item.id === id);
+
+        if (!itemToSave) return;
+
+        const formData = new URLSearchParams();
+        formData.append('id', itemToSave.id);
+        formData.append('caption', itemToSave.caption);
+        formData.append('category', itemToSave.category);
+
+        try {
+            const response = await fetch('/api/admin/edit', {
+                method: 'POST',
+                credentials: 'include',
+                body: formData,
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+            });
+
+            if (response.ok) {
+                alert('Изменения сохранены');
+                fetchGallery(); // Обновляем галерею
+            } else {
+                alert('Ошибка при сохранении изменений');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка при сохранении изменений');
+        }
+    };
+
+
+    // Загрузка данных галереи
+    useEffect(() => {
+        fetchGallery();
+    }, []);
+
+    const fetchGallery = async () => {
+        try {
+            const response = await fetch('/api/admin', {
+                credentials: "include",
+            });
+            if (!response.ok) {
+                throw new Error('Не удалось загрузить галерею');
+            }
+            const data = await response.json();
+            setGallery(data.gallery);
+            setError(null);
+        } catch (err) {
+            console.error('Ошибка загрузки галереи:', err);
+            setError('Не удалось загрузить изображения');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Обработчики действий
+    const handleSetDraft = async (id) => {
+        try {
+            const response = await fetch('/api/admin/set-draft', {
+                method: 'POST',
+                credentials: "include",
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `id=${id}`,
+            });
+
+            if (response.ok) {
+                alert('Статус изменен');
+                fetchGallery(); // Обновляем галерею
+            } else {
+                alert('Ошибка при изменении статуса');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка при изменении статуса');
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm('Вы уверены, что хотите удалить это изображение?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/admin/delete', {
+                method: 'POST',
+                credentials: "include",
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `id=${id}`,
+            });
+
+            if (response.ok) {
+                alert('Изображение удалено');
+                fetchGallery(); // Обновляем галерею
+            } else {
+                alert('Ошибка при удалении изображения');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка при удалении изображения');
+        }
+    };
+
+    // Статистика
+    const stats = {
+        total: gallery.length,
+        published: gallery.filter(item => !item.draft).length,
+        drafts: gallery.filter(item => item.draft).length,
+        wedding: gallery.filter(item => item.category === 'Wedding Dresses').length,
+        evening: gallery.filter(item => item.category === 'Evening Dresses').length,
+        decorations: gallery.filter(item => item.category === 'Decorations').length,
+    };
+
+    // Фильтрация для категорий
+    console.log(gallery)
+    const weddingDresses = gallery.filter(item => item.category === "Wedding Dresses");
+    const eveningDresses = gallery.filter(item => item.category === "Evening Dresses");
+    const decorations = gallery.filter(item => item.category === "Decorations");
+
+    if (loading) {
+        return <div className="text-center mt-8">Загрузка...</div>;
+    }
+
+    if (error) {
+        return <div className="text-center mt-8 text-red-500">{error}</div>;
+    }
+
+    return (
+        <div>
+            <h2 className="text-2xl font-playfair font-bold mt-8">Галереи</h2>
+
+            {/* Статистика */}
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+                <div className="bg-blue-50 p-3 rounded-md text-center">
+                <p className="text-xs text-gray-500">Всего</p>
+                <p className="text-xl font-bold">{stats.total}</p>
+                </div>
+                <div className="bg-green-50 p-3 rounded-md text-center">
+                <p className="text-xs text-gray-500">Опубликовано</p>
+                <p className="text-xl font-bold">{stats.published}</p>
+                </div>
+                <div className="bg-yellow-50 p-3 rounded-md text-center">
+                <p className="text-xs text-gray-500">Черновики</p>
+                <p className="text-xl font-bold">{stats.drafts}</p>
+                </div>
+                <div className="bg-pink-50 p-3 rounded-md text-center">
+                <p className="text-xs text-gray-500">Свадебные</p>
+                <p className="text-xl font-bold">{stats.wedding}</p>
+                </div>
+                <div className="bg-purple-50 p-3 rounded-md text-center">
+                <p className="text-xs text-gray-500">Вечерние</p>
+                <p className="text-xl font-bold">{stats.evening}</p>
+                </div>
+                <div className="bg-indigo-50 p-3 rounded-md text-center">
+                <p className="text-xs text-gray-500">Декорации</p>
+                <p className="text-xl font-bold">{stats.decorations}</p>
+                </div>
+            </div>
+
+            {/* Свадебные платья */}
+            <h3 className="text-xl font-bold mt-4">Свадебные платья</h3>
+            <div className="grid md:grid-cols-3 gap-4">
+                {weddingDresses.map(item => (
+                    <div key={item.id} className="relative border p-4 rounded">
+                        <img src={`/api/static/${item.filename}`} alt={item.caption} className="w-full rounded" />
+                        <p className="text-center mt-2">{item.caption}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Вечерние платья */}
+            <h3 className="text-xl font-bold mt-4">Вечерние платья</h3>
+            <div className="grid md:grid-cols-3 gap-4">
+                {eveningDresses.map(item => (
+                    <div key={item.id} className="relative border p-4 rounded">
+                        <img src={`/api/static/${item.filename}`} alt={item.caption} className="w-full rounded" />
+                        <p className="text-center mt-2">{item.caption}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Декорации */}
+            <h3 className="text-xl font-bold mt-4">Декорации</h3>
+            <div className="grid md:grid-cols-3 gap-4">
+                {decorations.map(item => (
+                    <div key={item.id} className="relative border p-4 rounded">
+                        <img src={`/api/static/${item.filename}`} alt={item.caption} className="w-full rounded" />
+                        <p className="text-center mt-2">{item.caption}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Таблица для редактирования */}
+            <h2 className="text-2xl font-playfair font-bold mt-8">Редактирование фотографий</h2>
+            <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                        <tr className="bg-gray-100">
+                            <th className="border border-gray-300 p-2">Фото</th>
+                            <th className="border border-gray-300 p-2">Описание</th>
+                            <th className="border border-gray-300 p-2">Категория</th>
+                            <th className="border border-gray-300 p-2">Статус</th>
+                            <th className="border border-gray-300 p-2">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {gallery.map(item => (
+                            <tr key={item.id}>
+                                <td className="border border-gray-300 p-2 text-center">
+                                    <img
+                                        src={`/api/static/${item.filename}`}
+                                        alt={item.caption}
+                                        className="w-16 h-16 object-cover rounded"
+                                    />
+                                </td>
+                                <td className="border border-gray-300 p-2">
+                                    <input
+                                        type="text"
+                                        name="caption"
+                                        defaultValue={item.caption}
+                                        className="border p-1 w-full"
+                                        onChange={(e) => handleInputChange(e, item.id, "caption")}
+                                    />
+                                </td>
+                                <td className="border border-gray-300 p-2">
+                                    <select
+                                        name="category"
+                                        defaultValue={item.category}
+                                        className="border p-1 w-full"
+                                        onChange={(e) => handleInputChange(e, item.id, "category")}
+                                    >
+                                        <option value="Wedding Dresses">Свадебные платья</option>
+                                        <option value="Evening Dresses">Вечерние платья</option>
+                                        <option value="Decorations">Декорации</option>
+                                    </select>
+                                </td>
+                                <td className="border border-gray-300 p-2 text-center">
+                                    {item.draft ? "Черновик" : "Опубликовано"}
+                                </td>
+                                <td className="border border-gray-300 p-2 text-center">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSave(item.id)}
+                                        className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600 transition-all"
+                                    >
+                                        Сохранить
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSetDraft(item.id)}
+                                        className="bg-yellow-500 text-white px-4 py-1 rounded hover:bg-yellow-600 transition-all ml-1"
+                                    >
+                                        В черновик
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDelete(item.id)}
+                                        className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600 transition-all ml-1"
+                                    >
+                                        Удалить
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    );
+};
+
+export default GalleryManager;
+______
+
+frontend/src/components/MainPage/Header.jsx
+
+import React, { useState, useEffect } from 'react';
+import { Link, NavLink } from 'react-router-dom';
+// Предположим, у вас есть иконка лупы в виде SVG или компонента
+// Если нет, можно временно использовать текст или emoji '🔍'
+// import { SearchIcon } from './icons'; 
+
+const Header = ({ variant }) => {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const isTransparentMode = variant === 'transparent' && !isScrolled;
+
+  const headerClasses = `fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 shadow-md backdrop-blur-sm' : 'bg-transparent'}`;
+  const textColorClass = isTransparentMode ? 'text-white' : 'text-gray-700';
+  const navLinkClasses = `${textColorClass} hover:text-primary transition-colors duration-300 pb-2 border-b-2 border-transparent`;
+  const activeNavLinkClasses = `!text-primary border-primary`; // ! - important, чтобы перебить text-white
+
+
+  return (
+    <header className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 shadow-md backdrop-blur-sm' : 'bg-transparent'}`}>
+      {/* Верхняя информационная панель */}
+      <div className="bg-gray-100 text-gray-600 text-base hidden md:block">
+        <div className="max-w-screen-2xl mx-auto px-4 py-2 flex justify-between items-center">
+          <div className="flex gap-8">
+            <div>
+              <p>Г. ТОМСК, ПРОСПЕКТ ЛЕНИНА 95</p>
+              <p>+7 (383) 226-34-85</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <a href="#" className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200"><i className="ri-instagram-line"></i></a>
+            <a href="#" className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200"><i className="ri-vk-line"></i></a>
+            <a href="#" className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200"><i className="ri-whatsapp-line"></i></a>
+          </div>
+        </div>
+      </div>
+
+      {/* Основная навигационная панель */}
+      <div className="max-w-screen-2xl mx-auto px-4">
+        <div className="flex justify-between items-center h-20">
+          <nav className="hidden lg:flex items-center gap-6 text-base font-medium uppercase tracking-wider">
+            <NavLink to="/catalog/wedding-dresses" className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}>Свадебные платья</NavLink>
+            <NavLink to="/catalog/evening-dresses" className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}>Вечерние платья</NavLink>
+            <NavLink to="/catalog" end className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}>Каталог</NavLink>
+            <NavLink to="/services" className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}>Услуги</NavLink>
+          </nav>
+
+          <div className="absolute left-1/2 -translate-x-1/2">
+            <Link to="/" className={`text-4xl font-['Pacifico'] transition-colors ${isTransparentMode ? 'text-white' : 'text-primary'}`}>
+              Katrin
+            </Link>
+          </div>
+          
+          <div className="hidden lg:flex items-center gap-6 text-base font-medium uppercase tracking-wider">
+            <NavLink to="/reviews" className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}>Отзывы</NavLink>
+            <NavLink to="/contacts" className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}>Контакты</NavLink>
+            <Link to="/appointment" className="bg-primary/10 text-primary px-4 py-2 rounded-md hover:bg-primary/20 transition-colors">
+              Записаться на примерку
+            </Link>
+            <button className="w-10 h-10 flex items-center justify-center border-2 rounded-full hover:border-primary transition-colors">
+              {/* <SearchIcon /> */} 🔍
+            </button>
+          </div>
+
+          {/* TODO: Добавить мобильное меню (бургер) */}
+          <div className="lg:hidden">
+            <button>☰</button>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default Header;
+______
+
+frontend/src/components/MainPage/MainPage.jsx
+
+import React, { useState, useEffect } from 'react';
+import Header from './Header';
+import Footer from './Footer'; // Путь может быть другим, проверьте
+import Hero from './Hero';
+import About from './About';
+import Services from './Services';
+import Contact from './Contact';
+import CategoriesGrid from './CategoriesGrid';
+
+const MainPage = () => {
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    // Загружаем всю структуру каталога для отображения категорий на главной
+    const fetchCatalogData = async () => {
+      try {
+        const response = await fetch('/api/catalog/structure');
+        if (response.ok) {
+          const data = await response.json();
+          setCategories(data);
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки структуры каталога:', error);
+      }
+    };
+
+    fetchCatalogData();
+  }, []);
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header variant="transparent" />
+      <main className="flex-grow">
+        <Hero />
+        <div className="mt-16"> {/* <-- ИЗМЕНЕНИЕ ЗДЕСЬ. Можете поиграть со значением (mt-12, mt-20) */}
+          <CategoriesGrid categories={categories} />
+        </div>
+        <div className="mt-16"> {/* <-- ИЗМЕНЕНИЕ ЗДЕСЬ */}
+          <About />
+        </div>
+        <Services />
+        <Contact />
+        {/* Убрали старую галерею и контакты, т.к. они есть в футере/хедере */}
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default MainPage;
+______
+
+frontend/src/components/MainPage/CategoriesGrid.jsx
+
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+// Этот компонент-карточка остается почти без изменений.
+// Он будет использоваться для отображения и категорий, и подкатегорий.
+const GridCard = ({ item, linkTo }) => {
+    const imageUrl = item.cover_image ? `/images/${item.cover_image}` : 'https://via.placeholder.com/600x800';
+
+    return (
+        <Link to={linkTo} className="relative block h-auto aspect-[10/16] group overflow-hidden rounded-md">
+            <img 
+                src={imageUrl} 
+                alt={item.name}
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-black/30"></div>
+            <div className="absolute inset-0 flex items-center justify-center text-center text-white p-4">
+                <h3 className="text-4xl font-playfair font-bold tracking-wider border-y-2 py-2">{item.name}</h3>
+            </div>
+        </Link>
+    );
+};
+
+// --- ОСНОВНОЙ КОМПОНЕНТ СЕТКИ ---
+// Мы сделаем его универсальным, чтобы он мог работать и с категориями, и с подкатегориями.
+const CategoriesGrid = ({ categories }) => {
+    if (!categories || categories.length === 0) return null;
+
+    return (
+        <div className="max-w-screen-2xl mx-auto px-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {categories.map(category => (
+                    <GridCard 
+                        key={category.id} 
+                        item={category} 
+                        linkTo={`/catalog/${category.slug}`} 
+                    />
+                ))}
+            </div>
+        </div>
+    );
+};
+
+export default CategoriesGrid;
+______
+
+frontend/src/components/MainPage/Footer.jsx
+
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+const Footer = () => {
+  return (
+    <footer className="bg-gray-100 text-gray-700 py-16">
+      <div className="max-w-screen-2xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
+        {/* Адреса */}
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-bold">КАТРИН ТОМСК</h4>
+            <p className="text-sm">ПРОСПЕКТ ЛЕНИНА 95</p>
+            <p className="text-sm">ТЕЛ. 226-34-85</p>
+            <Link to="/contacts" className="text-sm text-primary hover:underline">Смотреть на карте</Link>
+          </div>
+        </div>
+
+        {/* Каталог */}
+        <div>
+          <h4 className="font-bold mb-4">КАТАЛОГ</h4>
+          <ul className="space-y-2 text-sm">
+            <li><Link to="/catalog/wedding-dresses" className="hover:text-primary">Свадебные платья</Link></li>
+            <li><Link to="/catalog/evening-dresses" className="hover:text-primary">Вечерние платья</Link></li>
+            <li><Link to="/catalog/accessories" className="hover:text-primary">Аксессуары</Link></li>
+            {/* ... другие ссылки на категории */}
+          </ul>
+        </div>
+        
+        {/* Информация */}
+        <div>
+          <h4 className="font-bold mb-4">ИНФОРМАЦИЯ</h4>
+          <ul className="space-y-2 text-sm">
+            <li><Link to="/services" className="hover:text-primary">Дополнительные услуги</Link></li>
+            <li><Link to="/reviews" className="hover:text-primary">Отзывы</Link></li>
+            <li><Link to="/blog" className="hover:text-primary">Блог</Link></li>
+          </ul>
+        </div>
+        
+        {/* Соцсети */}
+        <div className="flex flex-col items-start">
+            <h4 className="font-bold mb-4">СОЦИАЛЬНЫЕ СЕТИ</h4>
+            <div className="flex gap-3">
+              <a href="#" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-whatsapp-line"></i></a>
+              <a href="#" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-instagram-line"></i></a>
+              <a href="#" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-vk-line"></i></a>
+            </div>
+        </div>
+      </div>
+      <div className="max-w-screen-2xl mx-auto px-4 mt-12 text-center text-xs text-gray-500 border-t pt-8">
+        © 2025 Katrin Bridal Salon. Все права защищены.
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;
+______
+
+frontend/src/components/MainPage/About.jsx
+
+import React from 'react';
+
+const About = () => {
+  return (
+    <section id="about" className="py-16 bg-white">
+      <div className="max-w-screen-2xl mx-auto px-4">
+        <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="relative h-[600px] rounded-lg overflow-hidden">
+            <img src="https://public.readdy.ai/ai/img_res/054a63c34db8a812adecabd12837183b.jpg"
+              className="absolute inset-0 w-full h-full object-cover" alt="Salon Interior" />
+          </div>
+          <div>
+            <h2 className="text-4xl font-playfair font-bold text-gray-900 mb-6">Наследие любви и элегантности</h2>
+            <p className="text-gray-600 mb-6">С 2010 года мы создаем незабываемые свадебные впечатления для
+              невест, которые ищут совершенства. Наша тщательно подобранная коллекция включает эксклюзивные модели от
+              всемирно известных дизайнеров, гарантируя, что каждая невеста найдет платье своей мечты.</p>
+            <div className="grid grid-cols-2 gap-6 mb-8">
+              <div className="p-6 bg-secondary rounded-lg">
+                <h3 className="text-2xl font-playfair font-bold text-primary mb-2">15+</h3>
+                <p className="text-gray-600">Лет Опыта</p>
+              </div>
+              <div className="p-6 bg-secondary rounded-lg">
+                <h3 className="text-2xl font-playfair font-bold text-primary mb-2">5000+</h3>
+                <p className="text-gray-600">Счастливых Невест</p>
+              </div>
+              <div className="p-6 bg-secondary rounded-lg">
+                <h3 className="text-2xl font-playfair font-bold text-primary mb-2">300+</h3>
+                <p className="text-gray-600">Уникальных Дизайнов</p>
+              </div>
+              <div className="p-6 bg-secondary rounded-lg">
+                <h3 className="text-2xl font-playfair font-bold text-primary mb-2">100%</h3>
+                <p className="text-gray-600">Удовлетворения</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default About;
+______
+
+frontend/src/components/MainPage/Hero.jsx
+
+import React from 'react';
+
+const Hero = () => {
+  return (
+    <section id="home" className="relative min-h-screen flex items-center"
+      style={{backgroundImage: `url('https://public.readdy.ai/ai/img_res/04912d24988877ceaabfb73c79c367c9.jpg')`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent"></div>
+      <div className="relative max-w-7xl mx-auto px-4 py-32">
+        <div className="max-w-2xl">
+          <h1 className="text-7xl font-playfair font-bold text-white mb-6">Ваша Идеальная Свадьба Начинается Здесь</h1>
+          <p className="text-xl text-white/90 mb-8">Ощутите роскошь и элегантность в нашем свадебном салоне. Где
+            мечты становятся реальностью.</p>
+          <a
+            href="#contact" className="bg-white text-primary px-8 py-4 rounded-button font-semibold hover:bg-primary hover:text-white transition-all cursor-pointer">Записаться на примерку</a>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default Hero;
+
+______
+
+frontend/src/components/MainPage/Gallery.jsx
+
+import React, { useState } from 'react';
+
+const Gallery = ({ galleryItems }) => {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [currentCategory, setCurrentCategory] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const openModal = (category, index) => {
+    setCurrentCategory(category);
+    setCurrentIndex(index);
+    setModalOpen(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    document.body.style.overflow = '';
+  };
+
+  const navigate = (direction) => {
+    const items = galleryItems.filter(item => item.category === currentCategory);
+    console.log(items)
+    setCurrentIndex((prevIndex) => {
+        let newIndex = prevIndex + direction;
+  
+        // Циклически возвращаемся в начало или конец
+        if (newIndex >= items.length) newIndex = 0; // если индекс больше длины, возвращаем в начало
+        if (newIndex < 0) newIndex = items.length - 1; // если индекс меньше 0, переходим в конец
+  
+        return newIndex;
+      });
+  };
+
+  // Группировка по категориям для показа превью
+  const categories = [
+    { name: 'Wedding Dresses', title: 'Свадебные платья', description: 'Откройте для себя роскошный выбор' },
+    { name: 'Evening Dresses', title: 'Вечерние платья', description: 'Найдите себе идеальное платье' },
+    { name: 'Decorations', title: 'Декорации', description: 'Сделайте Ваш день идеальным' }
+  ];
+
+  // Для модального окна
+  const currentItems = galleryItems.filter(item => item.category === currentCategory);
+  const currentItem = currentItems[currentIndex];
+
+  return (
+    <section id="gallery" className="py-24 bg-secondary">
+      <div className="max-w-7xl mx-auto px-4">
+        <h2 className="text-4xl font-playfair font-bold text-center text-gray-900 mb-12">Наша галерея</h2>
+        <div className="grid md:grid-cols-3 gap-8">
+          {categories.map((category, index) => (
+            <div 
+              key={category.name}
+              className="group relative h-[400px] rounded-lg overflow-hidden cursor-pointer"
+              onClick={() => openModal(category.name, 0)}
+            >
+              <img 
+                src={index === 0 
+                  ? "https://public.readdy.ai/ai/img_res/7d9b82151715c1916de743be0829955a.jpg" 
+                  : index === 1 
+                    ? "https://public.readdy.ai/ai/img_res/d051af50b0e8d83b578698a6ba092b45.jpg" 
+                    : "https://public.readdy.ai/ai/img_res/e897628c552a50901d8dacbb8637d25a.jpg"}
+                className="absolute inset-0 w-full h-full object-cover" 
+                alt={category.title} 
+              />
+              <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/40 transition-all"></div>
+              <div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform">
+                <h3 className="text-xl font-playfair font-bold mb-2">{category.title}</h3>
+                <p className="text-sm">{category.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Модальное окно */}
+      {modalOpen && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+          onClick={(e) => e.target === e.currentTarget && closeModal()}
+        >
+          <div className="relative bg-white rounded-lg max-w-4xl w-full">
+            <button 
+              onClick={closeModal}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
+            >
+              <i className="ri-close-line text-2xl"></i>
+            </button>
+            <div className="relative h-[70vh]">
+              {currentItem && (
+                <img 
+                  className="absolute inset-0 w-full h-full object-contain" 
+                  src={currentItem.filename.startsWith('/') ? currentItem.filename : `/images/${currentItem.filename}`} 
+                  alt={currentItem.caption} 
+                />
+              )}
+              <button 
+                onClick={() => navigate(-1)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center text-gray-700 hover:bg-white"
+              >
+                <i className="ri-arrow-left-s-line text-2xl"></i>
+              </button>
+              <button 
+                onClick={() => navigate(1)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center text-gray-700 hover:bg-white"
+              >
+                <i className="ri-arrow-right-s-line text-2xl"></i>
+              </button>
+            </div>
+            <div className="p-6 bg-white rounded-b-lg">
+              <h3 className="text-2xl font-playfair font-bold text-gray-900 mb-2">
+                {currentItem ? currentItem.caption : ''}
+              </h3>
+              <p className="text-gray-600">
+                {currentItem ? currentItem.caption : ''}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
+
+export default Gallery;
+
+______
+
+frontend/src/components/MainPage/Services.jsx
+
+import React from 'react';
+
+const Services = () => {
+  return (
+    <section id="services" className="py-16 bg-white">
+      <div className="max-w-screen-2xl mx-auto px-4">
+        <h2 className="text-4xl font-playfair font-bold text-center text-gray-900 mb-12">Наши услуги</h2>
+        <div className="grid md:grid-cols-3 gap-8">
+          <div className="p-8 bg-secondary rounded-lg">
+            <div className="w-12 h-12 flex items-center justify-center text-primary text-2xl mb-6">
+              <i className="ri-heart-line"></i>
+            </div>
+            <h3 className="text-xl font-playfair font-bold text-gray-900 mb-4">Примерка по записи</h3>
+            <p className="text-gray-600 mb-6">Вы сможете примерить любые понравившиеся Вам платья без спешки и суеты. </p>
+            <p className="text-primary font-semibold mb-4">Вы обязательно найдете платье по вкусу</p>
+          </div>
+          <div className="p-8 bg-secondary rounded-lg">
+            <div className="w-12 h-12 flex items-center justify-center text-primary text-2xl mb-6">
+              <i className="ri-scissors-line"></i>
+            </div>
+            <h3 className="text-xl font-playfair font-bold text-gray-900 mb-4">Пошив платья</h3>
+            <p className="text-gray-600 mb-6">Профессиональный портной сможет пошить платье идеально под Вашу фигуру и рост.</p>
+            <p className="text-primary font-semibold mb-4">Платье будет на Вас идеальным</p>
+          </div>
+          <div className="p-8 bg-secondary rounded-lg">
+            <div className="w-12 h-12 flex items-center justify-center text-primary text-2xl mb-6">
+              <i className="ri-percent-line"></i>
+            </div>
+            <h3 className="text-xl font-playfair font-bold text-gray-900 mb-4">Рассрочка без %</h3>
+            <p className="text-gray-600 mb-6">Выгодные условия для оформления рассрочки на любое платье, без процентов и переплат.</p>
+            <p className="text-primary font-semibold mb-4">Идеальная возможность купить платье</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default Services;
+
+______
+
+frontend/src/components/MainPage/Contact.jsx
+
+import React, { useState } from 'react';
+
+const Contact = () => {
+  const [formData, setFormData] = useState({
+    name: '',
+    number: '',
+    message: ''
+  });
+  const [notification, setNotification] = useState(null);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      
+      if (response.ok) {
+        showNotification('Вы были записаны!');
+        setFormData({ name: '', number: '', message: '' });
+      } else {
+        showNotification('Ошибка при отправке заявки :(');
+      }
+    } catch (error) {
+      showNotification('Ошибка соединения. Проверьте интернет.');
+    }
+  };
+
+  const showNotification = (text) => {
+    setNotification(text);
+    setTimeout(() => {
+      setNotification(null);
+    }, 3000);
+  };
+
+  return (
+    <section id="contact" className="py-24 bg-secondary">
+      <div className="max-w-screen-2xl mx-auto px-4">
+        <h2 className="text-4xl font-playfair font-bold text-center text-gray-900 mb-12">Контакты</h2>
+        <div className="grid md:grid-cols-2 gap-12">
+          <div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-gray-700 mb-2">Имя</label>
+                <input 
+                  type="text" 
+                  className="w-full px-4 py-2 border-none bg-white rounded" 
+                  name="name" 
+                  value={formData.name}
+                  onChange={handleChange}
+                  required 
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 mb-2">Номер телефона</label>
+                <input 
+                  type="number" 
+                  className="w-full px-4 py-2 border-none bg-white rounded" 
+                  name="number" 
+                  value={formData.number}
+                  onChange={handleChange}
+                  required 
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 mb-2">Ваши пожелания</label>
+                <textarea 
+                  className="w-full px-4 py-2 border-none bg-white rounded h-32" 
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                ></textarea>
+              </div>
+              <button
+                type="submit"
+                className="bg-primary text-white px-8 py-3 rounded-button hover:bg-primary/90 transition-all cursor-pointer"
+              >
+                Записаться
+              </button>
+            </form>
+          </div>
+          <div>
+            <div className="mb-8">
+              <div className="bg-white p-6 rounded-lg">
+                <div className="flex items-center mb-4">
+                  <div className="w-10 h-10 flex items-center justify-center text-primary">
+                    <i className="ri-map-pin-line text-xl"></i>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Адрес</h3>
+                    <p className="text-gray-600">​ТЦ Роман, ​Проспект Ленина, 95, Томск</p>
+                  </div>
+                </div>
+                <div className="flex items-center mb-4">
+                  <div className="w-10 h-10 flex items-center justify-center text-primary">
+                    <i className="ri-phone-line text-xl"></i>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Телефон</h3>
+                    <p className="text-gray-600">+7(3822)51-08-90</p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-10 h-10 flex items-center justify-center text-primary">
+                    <i className="ri-mail-line text-xl"></i>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Почта</h3>
+                    <p className="text-gray-600">katrin@yandex.ru</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="h-[300px] rounded-lg overflow-hidden">
+              <div style={{position: 'relative', overflow: 'hidden'}} className="w-full h-full object-cover">
+                <a href="https://yandex.ru/maps/org/katrin/1079021179/?utm_medium=mapframe&utm_source=maps" style={{color: '#eee', fontSize: '12px', position: 'absolute', top: '0px'}}>Катрин</a>
+                <a href="https://yandex.ru/maps/67/tomsk/category/bridal_salon/184108335/?utm_medium=mapframe&utm_source=maps" style={{color: '#eee', fontSize: '12px', position: 'absolute', top: '14px'}}>Свадебный салон в Томске</a>
+                <a href="https://yandex.ru/maps/67/tomsk/category/clothing_store/184107943/?utm_medium=mapframe&utm_source=maps" style={{color: '#eee', fontSize: '12px', position: 'absolute', top: '28px'}}>Магазин одежды в Томске</a>
+                <iframe src="https://yandex.ru/map-widget/v1/?ll=84.949607%2C56.481385&mode=search&oid=1079021179&ol=biz&z=17.05" width="100%" height="400" frameBorder="1" allowFullScreen={true} style={{position: 'relative'}}></iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Уведомление */}
+      {notification && (
+        <div className="fixed bottom-4 right-4 bg-primary text-white px-6 py-3 rounded shadow-lg">
+          {notification}
+        </div>
+      )}
+    </section>
+  );
+};
+
+export default Contact;
+______
+
+frontend/src/components/FloatingWidgets.jsx
+
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+
+const FloatingWidgets = () => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const toggleVisibility = () => {
+      if (window.pageYOffset > 300) {
+        setIsVisible(true);
+      } else {
+        setIsVisible(false);
+      }
+    };
+
+    window.addEventListener('scroll', toggleVisibility);
+    return () => window.removeEventListener('scroll', toggleVisibility);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  return (
+    <>
+      {/* Кнопка "Наверх" */}
+      {isVisible && (
+        <button 
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-opacity z-40"
+          aria-label="Наверх"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+        </button>
+      )}
+
+      {/* Кнопка "Записаться на примерку" */}
+      <Link 
+        to="/appointment" 
+        className="fixed bottom-20 right-6 bg-gray-800 text-white rounded-full shadow-lg flex items-center gap-2 px-4 py-3 hover:bg-gray-900 transition-transform hover:-translate-y-1 z-40"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+        <span className="text-sm font-medium hidden md:block">Записаться на примерку</span>
+      </Link>
+    </>
+  );
+};
+
+export default FloatingWidgets;
+______
+
+frontend/src/App.jsx
+
+import React from 'react';
+import { BrowserRouter as BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import MainPage from './components/MainPage/MainPage';
+import AdminPanel from './components/Admin/AdminPanel';
+import Login from './components/Auth/Login';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { FavoritesProvider } from './contexts/FavoritesContext';
+
+import ProductDetailPage from './pages/ProductDetailPage';
+import FloatingWidgets from './components/FloatingWidgets';
+
+import CategoryPage from './pages/CategoryPage';
+import ProductListPage from './pages/ProductListPage';
+import CatalogLandingPage from './pages/CatalogLandingPage';
+import AppointmentPage from './pages/AppointmentPage';
+import ContactsPage from './pages/ContactsPage';
+//import './assets/styles.css';
+
+// Защищенный маршрут для админ-панели
+const ProtectedRoute = ({ children }) => {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  return children;
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <FavoritesProvider>
+        <BrowserRouter>
+          <div className="relative">
+            <Routes>
+              <Route path="/" element={<MainPage />} />
+
+              <Route path="/catalog" element={<CatalogLandingPage />} />
+              <Route path="/catalog/:categorySlug" element={<CategoryPage />} />
+              <Route path="/catalog/:categorySlug/:subCategorySlug" element={<ProductListPage />} />
+              <Route path="/products/:productId" element={<ProductDetailPage />} />
+
+              <Route path="/products/:productId" element={<ProductDetailPage />} />
+
+              <Route path="/appointment" element={<AppointmentPage />} />
+              <Route path="/contacts" element={<ContactsPage />} />
+
+              <Route path="/login" element={<Login />} />
+              <Route path="/admin" element={
+                <ProtectedRoute>
+                  <AdminPanel />
+                </ProtectedRoute>
+              }>
+              </Route>
+            </Routes>
+            <FloatingWidgets />
+          </div>
+        </BrowserRouter>
+      </FavoritesProvider>
+    </AuthProvider>
+  );
+}
+
+export default App;
+______
+
+frontend/src/pages/AppointmentPage.jsx
+
+import React from 'react';
+import Header from '../components/MainPage/Header';
+import Footer from '../components/MainPage/Footer';
+
+const AppointmentPage = () => {
+  // TODO: Добавить логику формы (useState, handleSubmit)
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-grow pt-24 bg-white">
+        <div className="max-w-screen-2xl mx-auto px-4 py-16">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Левая колонка: Форма */}
+            <div className="order-2 lg:order-1">
+              <h1 className="text-3xl font-playfair font-bold mb-2">Записаться на примерку</h1>
+              <p className="text-gray-500 mb-8">Пожалуйста, заполните заявку</p>
+              <form className="space-y-6">
+                <div>
+                  <label className="text-sm text-gray-600">Ваше имя</label>
+                  <input type="text" className="w-full mt-1 p-3 border-b-2 focus:border-primary outline-none" />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">Телефон</label>
+                  <input type="tel" className="w-full mt-1 p-3 border-b-2 focus:border-primary outline-none" />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">Желаемая дата</label>
+                  <input type="date" className="w-full mt-1 p-3 border-b-2 focus:border-primary outline-none" />
+                </div>
+                {/* ... другие поля (время, выбор салона) ... */}
+                <button type="submit" className="w-full bg-primary text-white py-4 rounded-md font-semibold hover:bg-primary/90 transition-all">
+                  Отправить
+                </button>
+              </form>
+            </div>
+            {/* Правая колонка: Изображение */}
+            <div className="order-1 lg:order-2 h-96 lg:h-[600px] rounded-lg overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1587398322879-8395f3969145?q=80&w=1964" alt="Примерка платья" className="w-full h-full object-cover" />
+            </div>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default AppointmentPage;
+______
+
+frontend/src/pages/CategoryPage.jsx
+
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import Header from '../components/MainPage/Header';
+import Footer from '../components/MainPage/Footer';
+
+const SubCategoryCard = ({ subcategory, parentSlug }) => (
+    <Link to={`/catalog/${parentSlug}/${subcategory.slug}`} className="relative block h-auto aspect-[10/16] group overflow-hidden rounded-md">
+        <img
+            src={`/images/${subcategory.cover_image}`}
+            alt={subcategory.name}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+        <div className="absolute inset-0 bg-black/30"></div>
+        <div className="absolute inset-0 flex items-center justify-center text-center text-white p-4">
+            <h3 className="text-3xl font-playfair font-bold tracking-wider border-y-2 py-2">{subcategory.name}</h3>
+        </div>
+    </Link>
+);
+
+
+const CategoryPage = () => {
+    const { categorySlug } = useParams();
+    const [category, setCategory] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchCategoryData = async () => {
+            setIsLoading(true);
+            try {
+                // Мы получаем всю структуру, а затем находим нужную категорию по slug
+                const response = await fetch('/api/catalog/structure');
+                const allCategories = await response.json();
+                const currentCategory = allCategories.find(cat => cat.slug === categorySlug);
+                setCategory(currentCategory);
+            } catch (error) {
+                console.error("Ошибка загрузки категории:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchCategoryData();
+    }, [categorySlug]);
+
+    if (isLoading) return <div className="text-center py-40">Загрузка...</div>;
+    if (!category) return <div className="text-center py-40">Категория не найдена.</div>;
+
+    return (
+        <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-grow pt-24 bg-white">
+                <div className="max-w-screen-2xl mx-auto px-4 py-16">
+                    <div className="text-sm text-gray-500 mb-8">
+                        <Link to="/" className="hover:text-primary">Главная</Link>
+                        <span className="mx-2">/</span>
+                        <Link to="/catalog" className="hover:text-primary">Каталог</Link>
+                        <span className="mx-2">/</span>
+                        <span>{category.name}</span>
+                    </div>
+                    <div className="text-center mb-12">
+                        <h1 className="text-5xl font-playfair font-bold">{category.name}</h1>
+                        <p className="text-lg text-gray-500 mt-4">{category.description}</p>
+                    </div>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {category.subcategories.map(sub => (
+                            <SubCategoryCard key={sub.id} subcategory={sub} parentSlug={category.slug} />
+                        ))}
+                    </div>
+                </div>
+            </main>
+            <Footer />
+        </div>
+    );
+};
+
+export default CategoryPage;
+______
+
+frontend/src/pages/ProductDetailPage.jsx
+
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import Header from '../components/MainPage/Header';
+import Footer from '../components/MainPage/Footer';
+import { useFavorites } from '../contexts/FavoritesContext';
+
+// Компонент-заглушка для слайдера "Смотреть также", его можно будет улучшить
+const RelatedProductsSlider = ({ currentProductId }) => {
+  // В реальном приложении здесь был бы запрос к API для получения похожих товаров
+  // Сейчас это просто заглушка
+  return (
+    <div className="mt-24">
+      <h2 className="text-2xl font-playfair font-bold text-center">Смотреть также</h2>
+      <p className="text-center text-gray-500 mt-2 mb-8">Возможно, вам понравятся эти модели</p>
+      {/* Здесь будет карусель/слайдер */}
+      <div className="text-center text-gray-400 py-16 border rounded-md">
+        (Скоро здесь появится слайдер с похожими товарами)
+      </div>
+    </div>
+  );
+};
+
+
+const ProductDetailPage = () => {
+  const { productId } = useParams();
+  const [product, setProduct] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeImage, setActiveImage] = useState(0);
+
+  const { isFavorite, toggleFavorite } = useFavorites();
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      window.scrollTo(0, 0);
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/catalog/product/${productId}`);
+        if (!response.ok) throw new Error('Товар не найден');
+        const data = await response.json();
+        setProduct(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [productId]);
+
+  if (isLoading) return <div className="text-center py-40">Загрузка...</div>;
+  if (!product) return <div className="text-center py-40">Товар не найден.</div>;
+
+  const mainImageUrl = product.images?.[activeImage] ? `/images/${product.images[activeImage]}` : 'https://via.placeholder.com/800x1200';
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <main className="flex-grow pt-24 bg-white">
+        <div className="max-w-screen-2xl mx-auto px-4 py-12">
+          {/* Хлебные крошки */}
+          <div className="text-sm text-gray-500 mb-8">
+            <Link to="/" className="hover:text-primary">Главная</Link>
+            <span className="mx-2">/</span>
+            <Link to="/catalog" className="hover:text-primary">Каталог</Link>
+            {product.category_slug && (
+              <>
+                <span className="mx-2">/</span>
+                <Link to={`/catalog/${product.category_slug}`} className="hover:text-primary">{product.category_name}</Link>
+              </>
+            )}
+            {product.subcategory_slug && (
+              <>
+                <span className="mx-2">/</span>
+                <Link to={`/catalog/${product.category_slug}/${product.subcategory_slug}`} className="hover:text-primary">{product.subcategory_name}</Link>
+              </>
+            )}
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+            {/* Левая колонка: Галерея */}
+            <div className="flex flex-col-reverse sm:flex-row gap-4 sticky top-24">
+              <div className="flex sm:flex-col gap-3 justify-center">
+                {product.images?.map((img, index) => (
+                  <button
+                    key={index}
+                    className={`w-20 h-24 rounded-md overflow-hidden ring-2 ${activeImage === index ? 'ring-primary' : 'ring-transparent'}`}
+                    onClick={() => setActiveImage(index)}
+                  >
+                    <img src={`/images/${img}`} alt={`Превью ${index + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
+                <img src={mainImageUrl} alt={product.name} className="w-full h-full object-cover" />
+              </div>
+            </div>
+
+            {/* Правая колонка: Информация */}
+            <div>
+              <Link to="/catalog" className="text-sm text-gray-500 hover:text-primary mb-4 inline-block">&larr; Назад к списку платьев</Link>
+              <h1 className="text-4xl font-playfair font-bold text-gray-900">{product.name}</h1>
+              {product.sku && <p className="text-sm text-gray-400 mt-2">Артикул: {product.sku}</p>}
+
+              <div className="mt-4">
+                <span className="text-3xl font-semibold text-gray-800">
+                  {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(product.price)}
+                </span>
+                {product.old_price && (
+                  <span className="ml-4 text-xl text-gray-400 line-through">
+                    {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(product.old_price)}
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-8 prose max-w-none text-gray-600">
+                <p>{product.description}</p>
+              </div>
+
+              <div className="mt-8 flex items-center gap-4">
+                <Link to="/appointment" className="flex-1 text-center bg-primary text-white px-8 py-3 rounded-md font-semibold hover:bg-primary/90 transition-all shadow">
+                  Записаться на примерку
+                </Link>
+                <button
+                  onClick={() => toggleFavorite(product.id)}
+                  className="w-12 h-12 flex items-center justify-center border-2 rounded-md transition-colors"
+                  aria-label="Добавить в избранное"
+                >
+                  <svg className="w-6 h-6" fill={isFavorite(product.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 010-6.364z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <RelatedProductsSlider currentProductId={product.id} />
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default ProductDetailPage;
+______
+
+frontend/src/pages/CatalogLandingPage.jsx
+
+import React, { useState, useEffect } from 'react';
+import Header from '../components/MainPage/Header';
+import Footer from '../components/MainPage/Footer';
+import CategoriesGrid from '../components/MainPage/CategoriesGrid';
+import { useParams, Link } from 'react-router-dom';
+
+const CatalogLandingPage = () => {
+    const [categories, setCategories] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchCatalogData = async () => {
+            setIsLoading(true);
+            try {
+                const response = await fetch('/api/catalog/structure');
+                const data = await response.json();
+                setCategories(data);
+            } catch (error) {
+                console.error('Ошибка загрузки каталога:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchCatalogData();
+    }, []);
+
+    return (
+        <div className="flex flex-col min-h-screen">
+            <Header />
+            {/* --- ИЗМЕНЯЕМ ФОН И СТРУКТУРУ --- */}
+            <main className="flex-grow pt-24 bg-secondary">
+                <div className="max-w-screen-2xl mx-auto px-4 py-16">
+                    <div className="text-sm text-gray-500 mb-8">
+                        <Link to="/" className="hover:text-primary">Главная</Link>
+                        <span className="mx-2">/</span>
+                        <span>Каталог</span>
+                    </div>
+                    <div className="text-center mb-12">
+                        <h1 className="text-5xl font-playfair font-bold text-gray-800">Каталог</h1>
+                        <p className="text-lg text-gray-600 mt-4">Выберите интересующий вас раздел</p>
+                    </div>
+                    {isLoading ? (
+                        <p className="text-center">Загрузка...</p>
+                    ) : (
+                        // Используем наш универсальный компонент, который уже имеет вытянутые карточки
+                        <CategoriesGrid categories={categories} />
+                    )}
+                </div>
+            </main>
+            <Footer />
+        </div>
+    );
+};
+
+export default CatalogLandingPage;
+______
+
+frontend/src/pages/ContactsPage.jsx
+
+import React from 'react';
+import Header from '../components/MainPage/Header';
+import Footer from '../components/MainPage/Footer';
+
+const ContactsPage = () => {
+  // TODO: Добавить логику для переключения между городами
+  const activeCity = 'tomsk'; 
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-grow">
+        {/* Верхний блок с заголовком */}
+        <div className="bg-gray-100 pt-32 pb-16 text-center">
+            <h1 className="text-6xl font-playfair font-bold text-gray-800">Контакты</h1>
+        </div>
+
+        {/* Основной контент */}
+        <div className="bg-white py-16">
+            <div className="max-w-screen-2xl mx-auto px-4">
+                {/* Переключатель городов */}
+                <div className="flex justify-center mb-12">
+                    <div className="flex border border-gray-300 rounded-md p-1">
+                        <button className={`px-8 py-2 rounded-md transition-colors ${activeCity === 'tomsk' ? 'bg-gray-200' : ''}`}>Томск</button>
+                        <button className={`px-8 py-2 rounded-md transition-colors ${activeCity === 'kemerovo' ? 'bg-gray-200' : ''}`}>Кемерово</button>
+                    </div>
+                </div>
+
+                <div className="grid lg:grid-cols-2 gap-8">
+                    {/* Карта */}
+                    <div className="h-[500px] rounded-md overflow-hidden">
+                        <div style={{ position: 'relative', overflow: 'hidden', width: '100%', height: '100%' }}>
+                            <a href="https://yandex.ru/maps/org/katrin/1079021179/?utm_medium=mapframe&utm_source=maps" style={{ color: '#eee', fontSize: '12px', position: 'absolute', top: '0px' }}>Катрин</a>
+                            <iframe src="https://yandex.ru/map-widget/v1/?ll=84.949607%2C56.481385&mode=search&oid=1079021179&ol=biz&z=17" width="100%" height="100%" frameBorder="1" allowFullScreen={true} style={{ position: 'relative' }}></iframe>
+                        </div>
+                    </div>
+
+                    {/* Информация */}
+                    <div className="bg-secondary p-12 rounded-md flex flex-col justify-center">
+                        <h2 className="text-3xl font-playfair font-bold text-gray-800">Салон свадебной и вечерней моды KATRIN</h2>
+                        <h3 className="text-2xl font-playfair mt-2">Г. ТОМСК</h3>
+                        <div className="mt-8 space-y-4 text-lg text-gray-700 border-t pt-8">
+                            <p><strong>ТЕЛ:</strong> +7 (3822) 51-08-90</p>
+                            <p><strong>АДРЕС:</strong> Проспект Ленина, 95</p>
+                            <p><strong>РЕЖИМ РАБОТЫ:</strong> ПН-СБ 10:00-19:00, ВС 11:00-18:00</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default ContactsPage;
+______
+
+frontend/src/pages/ProductListPage.jsx
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import Header from '../components/MainPage/Header';
+import Footer from '../components/MainPage/Footer';
+import ProductCard from '../components/catalog/ProductCard';
+import { useFavorites } from '../contexts/FavoritesContext';
+
+const ProductListPage = () => {
+    const { categorySlug, subCategorySlug } = useParams();
+    const [subcategory, setSubcategory] = useState(null);
+    const [products, setProducts] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [sortOrder, setSortOrder] = useState('default');
+    const { isFavorite, toggleFavorite } = useFavorites();
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            try {
+                const response = await fetch(`/api/catalog/subcategory/${subCategorySlug}`);
+                const data = await response.json();
+                setSubcategory(data);
+                setProducts(data.products || []);
+            } catch (error) {
+                console.error("Ошибка загрузки товаров:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchData();
+    }, [subCategorySlug]);
+
+    const sortedProducts = useMemo(() => {
+        const sorted = [...products];
+        if (sortOrder === 'price-asc') {
+            return sorted.sort((a, b) => a.price - b.price);
+        }
+        if (sortOrder === 'price-desc') {
+            return sorted.sort((a, b) => b.price - a.price);
+        }
+        return sorted; // 'default'
+    }, [products, sortOrder]);
+
+    if (isLoading) return <div className="text-center py-40">Загрузка...</div>;
+    if (!subcategory) return <div className="text-center py-40">Раздел не найден.</div>;
+
+    return (
+        <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-grow pt-24 bg-white">
+                <div className="max-w-screen-2xl mx-auto px-4 py-16">
+                    {/* Хлебные крошки */}
+                    <div className="text-sm text-gray-500 mb-8">
+                        <Link to="/" className="hover:text-primary">Главная</Link>
+                        <span className="mx-2">/</span>
+                        <Link to="/catalog" className="hover:text-primary">Каталог</Link>
+                        {subcategory.category_slug && ( // Проверяем, что данные пришли
+                            <>
+                                <span className="mx-2">/</span>
+                                <Link to={`/catalog/${subcategory.category_slug}`} className="hover:text-primary">
+                                    {subcategory.category_name}
+                                </Link>
+                            </>
+                        )}
+                        <span className="mx-2">/</span>
+                        <span>{subcategory.name}</span>
+                    </div>
+
+                    <h1 className="text-4xl font-playfair font-bold text-center mb-12">{subcategory.name}</h1>
+
+                    {/* Панель фильтров и сортировки */}
+                    <div className="flex justify-between items-center mb-8 border-b pb-4">
+                        <div>
+                            {/* TODO: Кнопка для мобильных фильтров */}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label htmlFor="sort" className="text-sm text-gray-600">Порядок:</label>
+                            <select
+                                id="sort"
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value)}
+                                className="border-gray-300 rounded-md shadow-sm text-sm"
+                            >
+                                <option value="default">по умолчанию</option>
+                                <option value="price-asc">сначала дешевле</option>
+                                <option value="price-desc">сначала дороже</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Сетка товаров */}
+                    {sortedProducts.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
+                            {sortedProducts.map(product => (
+                                <ProductCard
+                                    key={product.id}
+                                    product={product}
+                                    isFavorite={isFavorite(product.id)}
+                                    onToggleFavorite={toggleFavorite}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center text-gray-500 py-20">В этом разделе пока нет платьев.</p>
+                    )}
+                </div>
+            </main>
+            <Footer />
+        </div>
+    );
+};
+
+export default ProductListPage;
+______
+
+backend/middleware/authMiddleware.js
+
+const jwt = require("jsonwebtoken");
+
+function authMiddleware(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(403).json("Unauthorized")
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(403).json("Unauthorized error")
+        }
+        req.admin = decoded;
+        next();
+    });
+}
+
+module.exports = authMiddleware;
+
+______
+
+backend/middleware/roleMiddleware.js
+
+function adminMiddleware(req, res, next) {
+    if (req.admin.role !== "admin") {
+        return res.status(403).send("Доступ запрещен");
+    }
+    next();
+}
+
+module.exports = adminMiddleware;
+
+______
+
+backend/server.js
+
+// server.js
+const app = require("./app");
+
+app.listen(3000, () => {
+  console.log("Server is running on port 3000");
+});
+
+______
+
+backend/Dockerfile
+
+FROM node:23
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+# Создаем директорию для изображений, если ее нет
+RUN mkdir -p /app/static
+
+EXPOSE 3000
+
+# Запускаем сервер
+CMD ["npm", "start"]
+
+______
+
+backend/mail.js
+
+
+// -4658057891
+
+async function sendMail(name, phone, message) {
+    let http = require('request')
+    let msg = `Имя: ${name}\nТелефон: ${phone}\nСообщение: ${message}`
+    msg = encodeURI(msg)
+
+    http.post(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage?chat_id=${process.env.TELEGRAM_CHATID}&parse_mode=html&text=${msg}`, function (error, response, body) {  
+        console.log('error:', error); 
+        console.log('statusCode:', response && response.statusCode); 
+        console.log('body:', body); 
+        if(response.statusCode===200){
+          res.status(200).json({status: 'ok', message: 'Успешно отправлено!'});
+        }
+        if(response.statusCode!==200){
+          res.status(400).json({status: 'error', message: 'Произошла ошибка!'});
+        }
+      });
+
+}
+
+module.exports = { sendMail };
+
+______
+
+backend/tests/api.test.js
+
+const request = require("supertest");
+const app = require("../app");  // Импортируем приложение Express
+const path = require("path")
+
+describe("API routes tests", () => {
+  it("should login successfully", async () => {
+    const response = await request(app)
+      .post("/login")
+      .send({ username: "admin", password: "password123" });
+
+    expect(response.status).toBe(200); 
+    //expect(response.header.location).toBe("/admin");
+  });
+
+  it("should return 401 for invalid login", async () => {
+    const response = await request(app)
+      .post("/login")
+      .send({ username: "admin", password: "wrongpassword" });
+
+    expect(response.status).toBe(401);
+    expect(response.text).toBe("Неверный логин или пароль");
+  });
+
+  it("should upload image", async () => {
+    const loginResponse = await request(app)
+        .post("/login")
+        .send({ username: "admin", password: "password123" })
+
+    const token = loginResponse.header["set-cookie"].find(cookie =>
+        cookie.startsWith("token=")
+    ).split(";")[0].split("=")[1];
+
+    const imagePath = path.join(__dirname, "static", "image.jpg");
+
+    const response = await request(app)
+        .post("/admin/upload")
+        .set("Cookie", `token=${token}`)
+        .attach("image", imagePath)
+        .field("category", "Wedding Dresses")
+        .field("caption", "Uploaded image");
+
+    expect(response.status).toBe(200); 
+    //expect(response.header.location).toBe("/admin");
+  });
+
+  it("should not upload non-image file", async () => {
+      const loginResponse = await request(app)
+          .post("/login")
+          .send({ username: "admin", password: "password123" })
+
+      const token = loginResponse.header["set-cookie"].find(cookie =>
+          cookie.startsWith("token=")
+      ).split(";")[0].split("=")[1];
+
+      const nonImagePath = path.join(__dirname, "static", "non_image.txt");
+
+    const response = await request(app)
+        .post("/admin/upload")
+        .set("Cookie", `token=${token}`)
+        .attach("image", nonImagePath)
+        .field("category", "landscape")
+        .field("caption", "Invalid file");
+
+    expect(response.status).toBe(500); // Ожидаем ошибку
+  });
+});
+
+______
+
+backend/tests/nothing.js
+
+const { getPublishedGallery, getAllGallery, addImage, updateImage, deleteImage, setDraft } = require("../admin");
+const sqlite3 = require("sqlite3").verbose();
+const db = new sqlite3.Database(":memory:");  // Используем в памяти базу данных для тестов
+
+// Перед каждым тестом создаем таблицы
+beforeEach(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS gallery (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      filename TEXT,
+      category TEXT,
+      caption TEXT,
+      draft BOOLEAN DEFAULT 0
+    )
+  `);
+  
+  db.run(`
+    CREATE TABLE IF NOT EXISTS admins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      role TEXT NOT NULL CHECK(role IN ('admin', 'moderator'))
+    )
+  `);
+});
+
+afterEach(() => {
+  db.run("DROP TABLE IF EXISTS gallery");
+  db.run("DROP TABLE IF EXISTS admins");
+});
+
+describe("Admin database functions", () => {
+  it("should add a new image", async () => {
+    await addImage("/Users/user/projects/katrin-site/tests/static/test.jpg", "Wedding Dresses", "Test caption");
+    const gallery = await getAllGallery();
+    expect(gallery.length).toBe(1);
+    expect(gallery[0].filename).toBe("test.jpg");
+
+    await deleteImage(1)
+  });
+
+  it("should get published gallery", async () => {
+    await addImage("/Users/user/projects/katrin-site/tests/static/published.jpg", "Wedding Dresses", "Published image");
+    await addImage("/Users/user/projects/katrin-site/tests/static/draft.jpg", "Wedding Dresses", "Draft image");
+    await setDraft(2);
+
+    const publishedGallery = await getPublishedGallery();
+    expect(publishedGallery.length).toBe(1);
+    expect(publishedGallery[0].filename).toBe("published.jpg");
+
+    await deleteImage(2)
+    await deleteImage(1)
+  });
+
+  it("should delete an image", async () => {
+    await addImage("/Users/user/projects/katrin-site/tests/static/delete.jpg", "Wedding Dresses", "Delete me");
+    const galleryBefore = await getAllGallery();
+    expect(galleryBefore.length).toBe(1);
+
+    await deleteImage(1);
+    const galleryAfter = await getAllGallery();
+    expect(galleryAfter.length).toBe(0);
+  });
+
+  it("should update an image", async () => {
+    await addImage("/Users/user/projects/katrin-site/tests/static/update.jpg", "Wedding Dresses", "Old caption");
+    const galleryBefore = await getAllGallery();
+    expect(galleryBefore[0].caption).toBe("Old caption");
+
+    await updateImage(1, "Wedding Dresses", "New caption");
+    const galleryAfter = await getAllGallery();
+    expect(galleryAfter[0].caption).toBe("New caption");
+
+    await deleteImage(1)
+  });
+});
+
+______
+
+backend/tests/middleware.test.js
+
+const authMiddleware = require("../middleware/authMiddleware");
+const adminMiddleware = require("../middleware/roleMiddleware");
+const jwt = require("jsonwebtoken");
+const { response, request } = require("express");
+
+jest.mock("jsonwebtoken");
+
+describe("Middleware tests", () => {
+  it("should call next if token is valid", () => {
+    const req = {
+      cookies: {
+        token: "valid-token"
+      }
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
+    };
+    const next = jest.fn();
+    
+    jwt.verify.mockImplementation((token, secret, callback) => {
+      callback(null, { role: "admin" });
+    });
+
+    authMiddleware(req, res, next);
+    expect(next).toHaveBeenCalled();
+  });
+
+  it("should redirect if token is missing", () => {
+    const req = {
+      cookies: {}
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
+    };
+    const next = jest.fn();
+
+    authMiddleware(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  it("should deny access if role is not admin", () => {
+    const req = {
+      admin: {
+        role: "moderator"
+      }
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      send: jest.fn()
+    };
+    const next = jest.fn();
+
+    adminMiddleware(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.send).toHaveBeenCalledWith("Доступ запрещен");
+  });
+
+  it("should allow access if role is admin", () => {
+    const req = {
+      admin: {
+        role: "admin"
+      }
+    };
+    const res = {};
+    const next = jest.fn();
+
+    adminMiddleware(req, res, next);
+    expect(next).toHaveBeenCalled();
+  });
+});
+
+______
+
+backend/tests/db.test.js
+
+const sqlite3 = require('sqlite3').verbose();
+const { open } = require('sqlite');
+const bcrypt = require('bcrypt');
+const { createDatabase } = require('../admin'); // Замените на путь к вашему файлу
+
+describe('Database Functions', () => {
+  let db, dbMethods;
+
+  beforeAll(async () => {
+    // Открываем временную базу данных в памяти для тестов
+    const tempDb = await open({
+      filename: ':memory:',
+      driver: sqlite3.Database
+    });
+
+    // Создаем базу данных с временной базой
+    dbMethods = createDatabase(':memory:');
+    db = dbMethods.db;
+
+    await dbMethods.createTables(db);
+  });
+
+  afterAll(async () => {
+    // Закрываем базу данных после тестов
+    await db.close();
+  });
+
+  describe('Gallery Image Functions', () => {
+    beforeEach(async () => {
+        // Очищаем таблицу перед каждым тестом
+        await new Promise((resolve, reject) => {
+          db.run('DELETE FROM gallery_test', (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      });
+
+    test('addImage should add a new image to the gallery', async () => {
+      await dbMethods.addImage('test.jpg', 'Wedding Dresses', 'Beautiful landscape');
+      const images = await dbMethods.getAllGallery();
+      
+      expect(images.length).toBe(1);
+      expect(images[0].filename).toBe('test.jpg');
+      expect(images[0].category).toBe('Wedding Dresses');
+      expect(images[0].caption).toBe('Beautiful landscape');
+      expect(images[0].draft).toBe(1);
+    });
+
+    test('getPublishedGallery should return only published images', async () => {
+      // Добавляем несколько изображений
+      await dbMethods.addImage('published1.jpg', 'Wedding Dresses', 'Landscape 1');
+      await dbMethods.addImage('draft.jpg', 'Wedding Dresses', 'City view');
+      await dbMethods.publishGallery(); // Публикуем все изображения
+
+      const publishedImages = await dbMethods.getPublishedGallery();
+      
+      expect(publishedImages.length).toBe(2);
+      expect(publishedImages.every(img => img.draft === 0)).toBe(true);
+    });
+
+    test('updateImage should modify image details', async () => {
+      await dbMethods.addImage('original.jpg', 'Wedding Dresses', 'Initial caption');
+      const images = await dbMethods.getAllGallery();
+      const imageId = images[0].id;
+
+      await dbMethods.updateImage(imageId, 'Wedding Dresses', 'Updated caption');
+      const updatedImages = await dbMethods.getAllGallery();
+
+      expect(updatedImages[0].category).toBe('Wedding Dresses');
+      expect(updatedImages[0].caption).toBe('Updated caption');
+    });
+
+    test('deleteImage should remove an image', async () => {
+      await dbMethods.addImage('delete.jpg', 'Wedding Dresses', 'To be deleted');
+      const images = await dbMethods.getAllGallery();
+      const imageId = images[0].id;
+
+      const deletedImage = await dbMethods.deleteImage(imageId);
+      
+      expect(deletedImage.filename).toBe('delete.jpg');
+      
+      const remainingImages = await dbMethods.getAllGallery();
+      expect(remainingImages.length).toBe(0);
+    });
+
+    test('setDraft should mark image as draft', async () => {
+      await dbMethods.addImage('draft.jpg', 'Wedding Dresses', 'Draft image');
+      const images = await dbMethods.getAllGallery();
+      const imageId = images[0].id;
+
+      await dbMethods.publishGallery(); // Сначала публикуем
+      await dbMethods.setDraft(imageId); // Затем переводим в черновик
+
+      const updatedImages = await dbMethods.getAllGallery();
+      expect(updatedImages[0].draft).toBe(1);
+    });
+  });
+
+  describe('Admin Functions', () => {
+    beforeEach(async () => {
+      // Очищаем таблицу администраторов перед каждым тестом
+      await db.run('DELETE FROM admins_test');
+    });
+
+    test('addAdmin should create a new admin with hashed password', async () => {
+      await dbMethods.addAdmin('testuser', 'password123');
+      const admin = await dbMethods.getAdmin('testuser');
+
+      expect(admin).toBeTruthy();
+      expect(admin.username).toBe('testuser');
+      expect(await bcrypt.compare('password123', admin.password)).toBe(true);
+      expect(admin.role).toBe('moderator');
+    });
+
+    test('addAdmin should support creating admin with specific role', async () => {
+      await dbMethods.addAdmin('adminuser', 'adminpass', 'admin');
+      const admin = await dbMethods.getAdmin('adminuser');
+
+      expect(admin.role).toBe('admin');
+    });
+
+    test('getAdmin should return null for non-existent user', async () => {
+      const admin = await dbMethods.getAdmin('nonexistent');
+      expect(admin).toBeUndefined();
+    });
+  });
+});
+______
+
+backend/upload.js
+
+const multer = require("multer");
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
+
+// Настройка хранилища файлов
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, path.join(__dirname, "static")); // Убеждаемся, что путь корректный
+    },
+    filename: function (req, file, cb) {
+        const filename = uuidv4() + path.extname(file.originalname);
+        cb(null, filename);
+    }
+});
+
+// Фильтр для проверки файлов (только изображения)
+const fileFilter = (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+        cb(null, true);
+    } else {
+        cb(new Error("Только изображения!"), false);
+    }
+};
+
+module.exports = multer({ storage, fileFilter });
+
+______
+
+backend/addAdmin.js
+
+const { addAdmin } = require("./admin");
+
+(async () => {
+    await addAdmin("admin", "password123", "admin");
+    console.log("Главный админ добавлен!");
+})();
+
+______
+
+backend/package.json
+
+{
+  "name": "katrin-site",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "start": "nodemon app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.10.0",
+    "request": "^2.88.2",
+    "sqlite3": "^5.1.7",
+    "superagent": "^10.2.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.11",
+    "sqlite": "^5.1.1",
+    "supertest": "^7.1.0"
+  }
+}
+
+______
+
+backend/routes.js
+
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
+const { getPublishedGallery, setDraft, getAllGallery, addImage, publishGallery, updateImage, deleteImage } = require("./admin");
+const { getAdmin, addAdmin } = require("./admin");
+const authMiddleware = require("./middleware/authMiddleware");
+const adminMiddleware = require("./middleware/roleMiddleware");
+const upload = require("./upload");
+
+
+const router = express.Router();
+
+// Отображение админ-панели
+router.get("/", authMiddleware, async (req, res) => {
+    const gallery = await getAllGallery(true); // Показываем черновики и опубликованные фото
+    const user = await getAdmin(req.cookies.user)
+    res.json({ gallery });
+});
+
+// Обновление информации о фото
+router.post("/edit", authMiddleware, async (req, res) => {
+    const { id, category, caption } = req.body;
+    await updateImage(id, category, caption);
+    res.json({success: true});
+});
+
+// Удаление фото http://127.0.0.1:3001/admin
+router.post("/delete", authMiddleware, async (req, res) => {
+    const { id } = req.body;
+    const image = await deleteImage(id);
+    if (image) {
+        const filePath = path.join(__dirname, "static", image.filename);
+        fs.unlink(filePath, (err) => {
+            if (err) console.error("Ошибка удаления файла:", err);
+        });
+    }
+    res.json({success: true});
+});
+
+// Публикация галереи
+router.post("/publish", authMiddleware, async (req, res) => {
+    await publishGallery();
+    res.json({success: true});
+});
+
+router.post("/set-draft", authMiddleware, async (req, res) => {
+    const { id } = req.body;
+    await setDraft(id);
+    res.json({success: true});
+  });
+
+// **Защита загрузки фото (для admin и moderator)**
+router.post("/upload", authMiddleware, upload.single("image"), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).send("Ошибка загрузки файла.");
+    }
+    try {
+        await addImage(req.file.filename, req.body.category, req.body.caption);
+        res.json({success: true});
+    } catch (error) {
+        console.error("Ошибка при сохранении в БД:", error);
+        res.status(500).send("Ошибка сервера.");
+    }
+});
+
+// **Эндпоинт для создания модератора (доступен только admin)**
+router.post("/create-moderator", authMiddleware, adminMiddleware, async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        await addAdmin(username, password, "moderator");
+        res.json({ success: true, message: "Модератор добавлен!" });
+    } catch (error) {
+        res.status(500).json({ error: "Ошибка при создании модератора" });
+    }
+});
+
+// Предпросмотр
+router.get("/preview", authMiddleware, async (req, res) => {
+    const gallery = await getAllGallery(true); // true - брать из черновика
+    res.json({success: true});
+});
+
+module.exports = router;
+
+______
+
+backend/catalogRoutes.js
+
+// backend/catalogRoutes.js
+const express = require("express");
+const db = require("./admin"); // Импортируем наш модуль с функциями БД
+
+const router = express.Router();
+
+// GET /api/catalog/structure - получить всю структуру категорий для меню
+router.get("/structure", async (req, res) => {
+    try {
+        const structure = await db.getCatalogStructure();
+        res.json(structure);
+    } catch (error) {
+        console.error("Ошибка при получении структуры каталога:", error);
+        res.status(500).json({ error: "Ошибка сервера" });
+    }
+});
+
+// GET /api/catalog/subcategory/:slug - получить подкатегорию с товарами
+router.get("/subcategory/:slug", async (req, res) => {
+    try {
+        const subcategory = await db.getSubCategoryWithProducts(req.params.slug);
+        if (!subcategory) {
+            return res.status(404).json({ error: "Подкатегория не найдена" });
+        }
+        res.json(subcategory);
+    } catch (error) {
+        console.error(`Ошибка при получении подкатегории ${req.params.slug}:`, error);
+        res.status(500).json({ error: "Ошибка сервера" });
+    }
+});
+
+// GET /api/catalog/product/:id - получить детальную информацию о товаре
+router.get("/product/:id", async (req, res) => {
+    try {
+        const product = await db.getProductDetails(req.params.id);
+        if (!product) {
+            return res.status(404).json({ error: "Товар не найден" });
+        }
+        res.json(product);
+    } catch (error) {
+        console.error(`Ошибка при получении товара ${req.params.id}:`, error);
+        res.status(500).json({ error: "Ошибка сервера" });
+    }
+});
+
+
+module.exports = router;
+______
+
+backend/admin.js
+
+const sqlite3 = require("sqlite3").verbose();
+const bcrypt = require("bcrypt");
+
+function createDatabase(dbPath = 'db.sqlite') {
+  const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+      console.error("Could not connect to database", err);
+    } else {
+      console.log("Connected to database");
+    }
+  });
+
+  // Включаем поддержку внешних ключей (важно для связей таблиц)
+  db.exec('PRAGMA foreign_keys = ON;', (err) => {
+    if (err) console.error("Could not enable foreign keys:", err);
+  });
+
+  // --- 1. СОЗДАНИЕ СТРУКТУРЫ БАЗЫ ДАННЫХ ---
+  function createTables(database) {
+    return new Promise((resolve, reject) => {
+      database.serialize(() => {
+        // Таблица администраторов
+        database.run(`
+          CREATE TABLE IF NOT EXISTS admins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL CHECK(role IN ('admin', 'moderator'))
+          )
+        `);
+
+        // --- НОВЫЕ ТАБЛИЦЫ ДЛЯ КАТАЛОГА V2 ---
+        database.run(`
+          CREATE TABLE IF NOT EXISTS categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            slug TEXT UNIQUE NOT NULL,
+            cover_image TEXT,
+            description TEXT
+          )
+        `);
+
+        database.run(`
+          CREATE TABLE IF NOT EXISTS subcategories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            category_id INTEGER,
+            name TEXT NOT NULL,
+            slug TEXT UNIQUE NOT NULL,
+            cover_image TEXT,
+            FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+          )
+        `);
+
+        database.run(`
+          CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            subcategory_id INTEGER,
+            name TEXT NOT NULL,
+            sku TEXT,
+            description TEXT,
+            price REAL NOT NULL,
+            old_price REAL,
+            is_published BOOLEAN DEFAULT 1,
+            FOREIGN KEY (subcategory_id) REFERENCES subcategories(id) ON DELETE SET NULL
+          )
+        `);
+
+        database.run(`
+          CREATE TABLE IF NOT EXISTS product_images (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER,
+            filename TEXT NOT NULL,
+            sort_order INTEGER DEFAULT 0,
+            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+          )
+        `, (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    });
+  }
+
+  // Инициализация таблиц при создании объекта
+  createTables(db);
+
+
+  // --- 2. ФУНКЦИИ ДЛЯ АДМИНИСТРАТОРОВ (Аутентификация и Управление) ---
+
+  function getAdmin(username, database = db) {
+    return new Promise((resolve, reject) => {
+      database.get("SELECT * FROM admins WHERE username = ?", [username], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+  }
+
+  async function addAdmin(username, password, role = "moderator", database = db) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    return new Promise((resolve, reject) => {
+      database.run("INSERT INTO admins (username, password, role) VALUES (?, ?, ?)", [username, hashedPassword, role], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+
+  // --- 3. ФУНКЦИИ ДЛЯ ПУБЛИЧНОГО API КАТАЛОГА (Чтение данных) ---
+
+  /**
+   * Получает всю структуру категорий и подкатегорий для меню.
+   * Очень эффективный запрос, чтобы избежать множества обращений к БД.
+   */
+  function getCatalogStructure(database = db) {
+    return new Promise((resolve, reject) => {
+      // --- ОБНОВЛЕННЫЙ ЗАПРОС ---
+      const query = `
+            SELECT 
+                c.id as category_id, c.name as category_name, c.slug as category_slug, c.cover_image as category_cover_image,
+                s.id as subcategory_id, s.name as subcategory_name, s.slug as subcategory_slug, s.cover_image as subcategory_cover_image
+            FROM categories c
+            LEFT JOIN subcategories s ON c.id = s.category_id
+            ORDER BY c.id, s.id;
+        `;
+      database.all(query, [], (err, rows) => {
+        if (err) return reject(err);
+
+        const structure = {};
+        rows.forEach(row => {
+          if (!structure[row.category_id]) {
+            structure[row.category_id] = {
+              id: row.category_id,
+              name: row.category_name,
+              slug: row.category_slug,
+              cover_image: row.category_cover_image, // <-- Добавили
+              subcategories: []
+            };
+          }
+          if (row.subcategory_id) {
+            structure[row.category_id].subcategories.push({
+              id: row.subcategory_id,
+              name: row.subcategory_name,
+              slug: row.subcategory_slug,
+              cover_image: row.subcategory_cover_image // <-- Добавили
+            });
+          }
+        });
+        resolve(Object.values(structure));
+      });
+    });
+  }
+
+  /**
+   * Получает информацию о подкатегории и список всех опубликованных товаров в ней.
+   */
+  function getSubCategoryWithProducts(slug, database = db) {
+    return new Promise((resolve, reject) => {
+      const subcategoryQuery = `
+            SELECT 
+                s.*,
+                c.name as category_name,
+                c.slug as category_slug
+            FROM subcategories s
+            JOIN categories c ON s.category_id = c.id
+            WHERE s.slug = ?
+        `;
+      database.get(subcategoryQuery, [slug], (err, subcategory) => {
+        if (err) return reject(err);
+        if (!subcategory) return resolve(null);
+
+        // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+        const productsQuery = `
+                SELECT 
+                    p.*,
+                    (SELECT filename FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as main_image
+                FROM products p
+                WHERE p.subcategory_id = ? AND p.is_published = 1
+            `; // Мы явно указали "p.id"
+        // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+
+        database.all(productsQuery, [subcategory.id], (err, products) => {
+          if (err) return reject(err);
+          subcategory.products = products;
+          resolve(subcategory);
+        });
+      });
+    });
+  }
+
+  /**
+   * Получает детальную информацию о товаре со всеми его изображениями.
+   */
+  function getProductDetails(productId, database = db) {
+    return new Promise((resolve, reject) => {
+      // --- НОВЫЙ, УЛУЧШЕННЫЙ ЗАПРОС ---
+      const query = `
+            SELECT
+                p.*,
+                s.name as subcategory_name,
+                s.slug as subcategory_slug,
+                c.name as category_name,
+                c.slug as category_slug
+            FROM products p
+            LEFT JOIN subcategories s ON p.subcategory_id = s.id
+            LEFT JOIN categories c ON s.category_id = c.id
+            WHERE p.id = ? AND p.is_published = 1
+        `;
+      database.get(query, [productId], (err, product) => {
+        if (err) return reject(err);
+        if (!product) return resolve(null);
+
+        const imagesQuery = "SELECT filename FROM product_images WHERE product_id = ? ORDER BY sort_order ASC";
+        database.all(imagesQuery, [productId], (err, images) => {
+          if (err) return reject(err);
+          product.images = images.map(img => img.filename);
+          resolve(product);
+        });
+      });
+    });
+  }
+
+  // --- 4. ФУНКЦИИ ДЛЯ АДМИН-ПАНЕЛИ (CRUD - Create, Read, Update, Delete) ---
+  // (Пока что здесь будут заглушки, мы их реализуем, когда будем делать админку)
+
+  // TODO: Реализовать CRUD для категорий
+  // TODO: Реализовать CRUD для подкатегорий
+  // TODO: Реализовать CRUD для товаров
+  // TODO: Реализовать управление изображениями товаров
+
+  return {
+    db,
+    // --- Экспорт публичных функций ---
+    createTables,
+    // Админы
+    getAdmin,
+    addAdmin,
+    // Публичный каталог
+    getCatalogStructure,
+    getSubCategoryWithProducts,
+    getProductDetails
+  };
+}
+
+// Экспортируем единственный экземпляр (синглтон) для всего приложения
+module.exports = createDatabase();
+// Также экспортируем саму функцию для возможного использования в тестах
+module.exports.createDatabase = createDatabase;
+______
+
+backend/seeder.js
+
+// backend/seeder.js
+const { createDatabase } = require('./admin');
+const path = require('path');
+
+// Указываем путь к нашей БД
+const dbMethods = createDatabase(path.join(__dirname, 'db.sqlite'));
+const db = dbMethods.db;
+
+// --- ТЕСТОВЫЕ ДАННЫЕ ---
+
+const categories = [
+    { id: 1, name: 'Свадебные платья', slug: 'wedding-dresses', cover_image: 'category-wedding.jpg', description: 'Откройте для себя нашу эксклюзивную коллекцию свадебных платьев.' },
+    { id: 2, name: 'Вечерние платья', slug: 'evening-dresses', cover_image: 'category-evening.jpg', description: 'Идеальные наряды для любого торжественного случая.' },
+    { id: 3, name: 'Аксессуары', slug: 'accessories', cover_image: 'category-accessories.jpg', description: 'Завершите свой образ нашими изысканными аксессуарами.' },
+];
+
+const subcategories = [
+    // Для Свадебных платьев
+    { id: 1, category_id: 1, name: 'Пышные', slug: 'puffy', cover_image: 'subcategory-puffy.jpg' },
+    { id: 2, category_id: 1, name: 'Силуэтные', slug: 'silhouette', cover_image: 'subcategory-silhouette.jpg' },
+    { id: 3, category_id: 1, name: 'А-силуэт', slug: 'a-silhouette', cover_image: 'subcategory-a-silhouette.jpg' },
+    // Для Вечерних платьев
+    { id: 4, category_id: 2, name: 'Коктейльные', slug: 'cocktail', cover_image: 'subcategory-cocktail.jpg' },
+    { id: 5, category_id: 2, name: 'В пол', slug: 'maxi', cover_image: 'subcategory-maxi.jpg' },
+];
+
+const products = [
+    // Пышные
+    { id: 1, subcategory_id: 1, name: 'Монро', sku: 'SV001', price: 65000, old_price: 72000, description: 'Классическое пышное платье принцессы с корсетом, расшитым кристаллами.' },
+    { id: 2, subcategory_id: 1, name: 'Аврора', sku: 'SV002', price: 89000, old_price: null, description: 'Роскошное платье с многослойной юбкой из тюля и длинным шлейфом.' },
+    // Силуэтные
+    { id: 3, subcategory_id: 2, name: 'Венера', sku: 'SV003', price: 58000, old_price: null, description: 'Элегантное силуэтное платье "рыбка" из атласа.' },
+    // Коктейльные
+    { id: 4, subcategory_id: 4, name: 'Грейс', sku: 'EV001', price: 35000, old_price: 40000, description: 'Игривое коктейльное платье-бюстье небесного цвета.' },
+];
+
+const productImages = [
+    // Монро
+    { product_id: 1, filename: 'monroe_1.jpg', sort_order: 0 },
+    { product_id: 1, filename: 'monroe_2.jpg', sort_order: 1 },
+    // Аврора
+    { product_id: 2, filename: 'aurora_1.jpg', sort_order: 0 },
+    // Венера
+    { product_id: 3, filename: 'venus_1.jpg', sort_order: 0 },
+    { product_id: 3, filename: 'venus_2.jpg', sort_order: 1 },
+    // Грейс
+    { product_id: 4, filename: 'grace_1.jpg', sort_order: 0 },
+];
+
+// --- ЛОГИКА ЗАПОЛНЕНИЯ ---
+
+async function seed() {
+    console.log('Начинаю заполнение базы данных V2...');
+
+    const run = (query, params) => new Promise((resolve, reject) => {
+        db.run(query, params, function(err) {
+            if (err) reject(err); else resolve({ id: this.lastID });
+        });
+    });
+
+    try {
+        console.log('Очистка старых данных...');
+        await run('DELETE FROM product_images');
+        await run('DELETE FROM products');
+        await run('DELETE FROM subcategories');
+        await run('DELETE FROM categories');
+        
+        console.log('Добавление категорий...');
+        for (const c of categories) {
+            await run('INSERT INTO categories (id, name, slug, cover_image, description) VALUES (?, ?, ?, ?, ?)', [c.id, c.name, c.slug, c.cover_image, c.description]);
+        }
+
+        console.log('Добавление подкатегорий...');
+        for (const s of subcategories) {
+            await run('INSERT INTO subcategories (id, category_id, name, slug, cover_image) VALUES (?, ?, ?, ?, ?)', [s.id, s.category_id, s.name, s.slug, s.cover_image]);
+        }
+
+        console.log('Добавление товаров...');
+        for (const p of products) {
+            await run('INSERT INTO products (id, subcategory_id, name, sku, price, old_price, description) VALUES (?, ?, ?, ?, ?, ?, ?)', [p.id, p.subcategory_id, p.name, p.sku, p.price, p.old_price, p.description]);
+        }
+
+        console.log('Добавление изображений товаров...');
+        for (const img of productImages) {
+            await run('INSERT INTO product_images (product_id, filename, sort_order) VALUES (?, ?, ?)', [img.product_id, img.filename, img.sort_order]);
+        }
+
+        console.log('✅ База данных успешно заполнена тестовыми данными!');
+
+    } catch (error) {
+        console.error('❌ Ошибка при заполнении базы данных:', error);
+    } finally {
+        db.close(() => console.log('Соединение с БД закрыто.'));
+    }
+}
+
+seed();
+______
+
+backend/app.js
+
+require("dotenv").config();
+const express = require("express");
+const session = require("express-session");
+const cookieParser = require("cookie-parser");
+const path = require("path");
+const { getAdmin, addAdmin } = require("./admin");
+const { getPublishedGallery, getAllGallery, addImage } = require("./admin");
+const { generateToken } = require("./generateToken");
+const bcrypt = require("bcrypt");
+
+const cors = require("cors");
+
+
+const app = express();
+// Разрешаем запросы с фронтенда
+app.use(cors());
+
+app.use(express.static("public"));
+app.use("/static", express.static("static"));
+app.use(express.urlencoded({ extended: true }));
+app.use(
+    session({
+        secret: "supersecretkey",
+        resave: false,
+        saveUninitialized: true,
+    })
+);
+app.use(express.json());  // Разбирает JSON-тело запроса
+app.use(express.urlencoded({ extended: true }));  // Разбирает данные из form-data
+app.use(cookieParser());
+
+
+
+// Главная страница
+app.get("/", async (req, res) => {
+    const gallery = await getPublishedGallery();
+    res.json({ gallery });
+});
+
+// **Страница входа**
+app.get("/login", (req, res) => {
+    res.json({success: true});
+});
+
+// **Обработка входа**
+app.post("/login", async (req, res) => {
+    const { username, password } = req.body;
+    const admin = await getAdmin(username);
+    
+
+    if (!admin || !(await bcrypt.compare(password, admin.password))) {
+        return res.status(401).send("Неверный логин или пароль");
+    }
+    role = admin.role
+    const token = generateToken(admin);
+    res.cookie("token", token, { httpOnly: true });
+    res.json({ username, role });
+});
+
+// **Выход**
+app.get("/logout", (req, res) => {
+    res.clearCookie("token");
+    res.json({ message: "Выход выполнен" });
+});
+
+
+// Обработка формы записи
+app.post("/contact", (req, res) => {
+    const { name, number, message } = req.body;
+    console.log(req.body)
+    let http = require('request')
+    let msg = `Имя: ${name}\nТелефон: ${number}\nСообщение: ${message}`
+    console.log(msg)
+    msg = encodeURI(msg)
+
+    http.post(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage?chat_id=${process.env.TELEGRAM_CHATID}&parse_mode=html&text=${msg}`,
+    function (error, response, body) {  
+        console.log('error:', error); 
+        console.log('statusCode:', response && response.statusCode); 
+        console.log('body:', body); 
+        if(response.statusCode===200){
+            res.json({ success: true });
+        }
+        if(response.statusCode!==200){
+            res.status(400).json({ error: "Не удалось отправить сообщение" });
+        }
+      });
+});
+
+// Админка
+app.use("/admin", require("./routes"));
+
+app.use("/catalog", require("./catalogRoutes"));
+
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(3000, () => {
+        console.log("Server running on http://localhost:3000");
+    });
+}
+
+module.exports = app;
+
+______
+
+backend/generateToken.js
+
+const jwt = require("jsonwebtoken");
+
+function generateToken(admin) {
+    return jwt.sign(
+        { username: admin.username, role: admin.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "1h" }
+    );
+}
+
+module.exports = { generateToken };
+
+______
+
+nginx/Dockerfile
+
+FROM nginx:alpine
+
+COPY conf.d /etc/nginx/conf.d
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+______
+
+nginx/conf.d/default.conf
+
+server {
+    listen 80;
+    
+
+    # Проксирование API запросов к бэкенду
+    location /api/ {
+        proxy_pass http://backend:3000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+
+        proxy_cookie_domain backend $host;
+        proxy_cookie_path / /;
+        proxy_set_header Cookie $http_cookie;  
+
+        rewrite ^/api/(.*) /$1 break;
+    }
+    
+    # Обслуживание изображений - сначала обрабатываем изображения
+    location /images/ {
+        root /; # <-- Изменить alias на root
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
+        access_log off;
+    }
+    
+    # Все остальные запросы к /static/ отправляем на фронтенд
+    location /static/ {
+        proxy_pass http://frontend:80/static/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+    
+    # Проксирование запросов к фронтенду
+    location / {
+        proxy_pass http://frontend:80;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+______
+
+.github/workflows/ci-cd.yml
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Позволяет запускать рабочий процесс вручную
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Create .env file
+        working-directory: ./backend
+        run: |
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" > .env
+          echo "TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}" >> .env
+          echo "TELEGRAM_CHATID=${{ secrets.TELEGRAM_CHATID }}" >> .env
+        
+      - name: Run backend tests
+        working-directory: ./backend
+        run: npm test
+  
+  build-and-push:
+    needs: test-backend
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+      - name: Build and push frontend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/katrin-frontend:latest
+          
+      - name: Build and push backend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/katrin-backend:latest
+          
+      - name: Build and push nginx
+        uses: docker/build-push-action@v4
+        with:
+          context: ./nginx
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/katrin-nginx:latest
+          
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Create .env file on runner
+        run: |
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" > .env.backend
+          echo "TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}" >> .env.backend
+          echo "TELEGRAM_CHATID=${{ secrets.TELEGRAM_CHATID }}" >> .env.backend
+
+      - name: Upload .env file to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          source: ".env.backend"
+          target: "/home/${{ secrets.SERVER_USER }}/katrin/"
+
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            cd katrin/
+            docker compose pull
+            docker compose up -d
+
+______
+
+docker-compose.yml
+
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: unless-stopped
+    volumes:
+      - ./public_images:/app/static
+      - ./backend/db.sqlite:/app/db.sqlite
+    networks:
+      - app-network
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./public_images:/images
+    networks:
+      - app-network
+    depends_on:
+      - frontend
+      - backend
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  image-storage:
+
+______
+

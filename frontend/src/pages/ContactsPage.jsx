@@ -2,30 +2,25 @@ import React from 'react';
 import Header from '../components/MainPage/Header';
 import Footer from '../components/MainPage/Footer';
 
-const ContactsPage = () => {
-  // TODO: Добавить логику для переключения между городами
-  const activeCity = 'tomsk'; 
+import ServicesBanner from '../components/MainPage/ServicesBanner';
 
+const ContactsPage = () => {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col lg:text-xl min-h-screen text-gray-600 font-light leading-relaxed space-y-6
+    [&_h2]:text-4xl [&_h2]:font-playfair [&_h2]:text-center [&_h2]:mb-8
+    [&_h3]:text-2xl [&_h3]:font-playfair [&_h3]:mt-10
+    [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-2
+    [&_strong]:font-semibold [&_strong]:text-gray-700">
       <Header />
       <main className="flex-grow">
         {/* Верхний блок с заголовком */}
-        <div className="bg-gray-100 pt-32 pb-16 text-center">
+        <div className="bg-gray-100 pt-32 pb-16 mt-8 text-center">
             <h1 className="text-6xl font-playfair font-bold text-gray-800">Контакты</h1>
         </div>
 
         {/* Основной контент */}
         <div className="bg-white py-16">
-            <div className="max-w-screen-2xl mx-auto px-4">
-                {/* Переключатель городов */}
-                <div className="flex justify-center mb-12">
-                    <div className="flex border border-gray-300 rounded-md p-1">
-                        <button className={`px-8 py-2 rounded-md transition-colors ${activeCity === 'tomsk' ? 'bg-gray-200' : ''}`}>Томск</button>
-                        <button className={`px-8 py-2 rounded-md transition-colors ${activeCity === 'kemerovo' ? 'bg-gray-200' : ''}`}>Кемерово</button>
-                    </div>
-                </div>
-
+            <div className="max-w-screen-3xl mx-auto px-4">
                 <div className="grid lg:grid-cols-2 gap-8">
                     {/* Карта */}
                     <div className="h-[500px] rounded-md overflow-hidden">
@@ -38,8 +33,8 @@ const ContactsPage = () => {
                     {/* Информация */}
                     <div className="bg-secondary p-12 rounded-md flex flex-col justify-center">
                         <h2 className="text-3xl font-playfair font-bold text-gray-800">Салон свадебной и вечерней моды KATRIN</h2>
-                        <h3 className="text-2xl font-playfair mt-2">Г. ТОМСК</h3>
-                        <div className="mt-8 space-y-4 text-lg text-gray-700 border-t pt-8">
+                        <h3 className="text-2xl font-playfair text-gray-800 mt-2">Г. ТОМСК</h3>
+                        <div className="mt-8 space-y-4 lg:text-lg text-gray-700 border-t pt-8">
                             <p><strong>ТЕЛ:</strong> +7 (3822) 51-08-90</p>
                             <p><strong>АДРЕС:</strong> Проспект Ленина, 95</p>
                             <p><strong>РЕЖИМ РАБОТЫ:</strong> ПН-СБ 10:00-19:00, ВС 11:00-18:00</p>
@@ -48,6 +43,7 @@ const ContactsPage = () => {
                 </div>
             </div>
         </div>
+        <ServicesBanner />
       </main>
       <Footer />
     </div>

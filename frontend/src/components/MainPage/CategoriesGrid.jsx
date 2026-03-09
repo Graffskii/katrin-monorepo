@@ -15,7 +15,7 @@ const GridCard = ({ item, linkTo }) => {
             />
             <div className="absolute inset-0 bg-black/30"></div>
             <div className="absolute inset-0 flex items-center justify-center text-center text-white p-4">
-                <h3 className="text-4xl font-playfair font-bold tracking-wider border-y-2 py-2">{item.name}</h3>
+                <h3 className="text-4xl text-white font-playfair font-bold tracking-wider border-y-2 py-2">{item.name}</h3>
             </div>
         </Link>
     );

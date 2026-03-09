@@ -2,13 +2,15 @@ import React from 'react';
 import Header from '../components/MainPage/Header';
 import Footer from '../components/MainPage/Footer';
 
+import ServicesBanner from '../components/MainPage/ServicesBanner';
+
 const AppointmentPage = () => {
   // TODO: Добавить логику формы (useState, handleSubmit)
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-grow pt-24 bg-white">
-        <div className="max-w-screen-2xl mx-auto px-4 py-16">
+        <div className="max-w-screen-3xl mx-auto px-4 py-16">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Левая колонка: Форма */}
             <div className="order-2 lg:order-1">
@@ -35,11 +37,13 @@ const AppointmentPage = () => {
             </div>
             {/* Правая колонка: Изображение */}
             <div className="order-1 lg:order-2 h-96 lg:h-[600px] rounded-lg overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1587398322879-8395f3969145?q=80&w=1964" alt="Примерка платья" className="w-full h-full object-cover" />
+                <img src="https://salon-diadema.ru/upload/webp/100/upload/iblock/977/76y4cfnnx0dx478ulvxmpbx3vsupjujy.webp" alt="Примерка платья" className="w-full h-full object-cover" />
             </div>
           </div>
         </div>
+        <ServicesBanner />
       </main>
+      
       <Footer />
     </div>
   );

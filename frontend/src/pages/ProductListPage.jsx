@@ -4,6 +4,9 @@ import Header from '../components/MainPage/Header';
 import Footer from '../components/MainPage/Footer';
 import ProductCard from '../components/catalog/ProductCard';
 import { useFavorites } from '../contexts/FavoritesContext';
+import SeoText from '../components/SeoText';
+
+import ServicesBanner from '../components/MainPage/ServicesBanner';
 
 const ProductListPage = () => {
     const { categorySlug, subCategorySlug } = useParams();
@@ -47,7 +50,7 @@ const ProductListPage = () => {
     return (
         <div className="flex flex-col min-h-screen">
             <Header />
-            <main className="flex-grow pt-24 bg-white">
+            <main className="flex-grow pt-24 bg-white lg:text-xl">
                 <div className="max-w-screen-2xl mx-auto px-4 py-16">
                     {/* Хлебные крошки */}
                     <div className="text-sm text-gray-500 mb-8">
@@ -102,9 +105,30 @@ const ProductListPage = () => {
                         </div>
                     ) : (
                         <p className="text-center text-gray-500 py-20">В этом разделе пока нет платьев.</p>
+                    )
+                    }
+                    {subcategory.seo_text && (
+                        <div className="mt-24 prose max-w-none text-gray-600">
+                            <SeoText>
+                                <h2>Коллекция Вечерних Платьев</h2>
+                                <p>
+                                    Вечернее платье — это ваш персональный код элегантности. Оно должно интриговать, восхищать и дарить абсолютную уверенность в себе. В коллекции салона «Katrin» собраны наряды, достойные красной ковровой дорожки.
+                                </p>
+                                <h3>Разнообразие стилей для любого торжества</h3>
+                                <ul>
+                                    <li><strong>Платья в пол (Макси):</strong> Неувядающая классика, символизирующая статус и грацию. Идеальный выбор для гала-вечеров, оперных премьер и официальных приемов. Благородный бархат, струящийся шелк и деликатное кружево создают поистине королевский образ.</li>
+                                    <li><strong>Коктейльные платья (Миди и Мини):</strong> Динамичные, стильные и немного дерзкие. Отлично подходят для корпоративных вечеринок, дней рождения и романтических ужинов.</li>
+                                    <li><strong>Утонченный минимализм:</strong> Лаконичные силуэты без лишних деталей, где главную роль играет безупречный крой и качество ткани.</li>
+                                </ul>
+                                <p>
+                                    Каждое мероприятие уникально, как и вы. Позвольте нам помочь вам блистать. Запишитесь на примерку, и мы подберем образ, который станет украшением вечера.
+                                </p>
+                            </SeoText>
+                        </div>
                     )}
                 </div>
             </main>
+            <ServicesBanner />
             <Footer />
         </div>
     );

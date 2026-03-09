@@ -9,19 +9,19 @@ const db = dbMethods.db;
 // --- ТЕСТОВЫЕ ДАННЫЕ ---
 
 const categories = [
-    { id: 1, name: 'Свадебные платья', slug: 'wedding-dresses', cover_image: 'category-wedding.jpg', description: 'Откройте для себя нашу эксклюзивную коллекцию свадебных платьев.' },
-    { id: 2, name: 'Вечерние платья', slug: 'evening-dresses', cover_image: 'category-evening.jpg', description: 'Идеальные наряды для любого торжественного случая.' },
-    { id: 3, name: 'Аксессуары', slug: 'accessories', cover_image: 'category-accessories.jpg', description: 'Завершите свой образ нашими изысканными аксессуарами.' },
+    { id: 1, name: 'Свадебные платья', slug: 'wedding-dresses', cover_image: 'category-wedding.jpg', description: 'Откройте для себя нашу эксклюзивную коллекцию свадебных платьев.', seo_text: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.' },
+    { id: 2, name: 'Вечерние платья', slug: 'evening-dresses', cover_image: 'category-evening.jpg', description: 'Идеальные наряды для любого торжественного случая.', seo_text: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.' },
+    { id: 3, name: 'Аксессуары', slug: 'accessories', cover_image: 'category-accessories.jpg', description: 'Завершите свой образ нашими изысканными аксессуарами.', seo_text: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.' },
 ];
 
 const subcategories = [
     // Для Свадебных платьев
-    { id: 1, category_id: 1, name: 'Пышные', slug: 'puffy', cover_image: 'subcategory-puffy.jpg' },
-    { id: 2, category_id: 1, name: 'Силуэтные', slug: 'silhouette', cover_image: 'subcategory-silhouette.jpg' },
-    { id: 3, category_id: 1, name: 'А-силуэт', slug: 'a-silhouette', cover_image: 'subcategory-a-silhouette.jpg' },
+    { id: 1, category_id: 1, name: 'Пышные', slug: 'puffy', cover_image: 'subcategory-puffy.jpg', seo_text: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.' },
+    { id: 2, category_id: 1, name: 'Силуэтные', slug: 'silhouette', cover_image: 'subcategory-silhouette.jpg', seo_text: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.' },
+    { id: 3, category_id: 1, name: 'А-силуэт', slug: 'a-silhouette', cover_image: 'subcategory-a-silhouette.jpg', seo_text: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.' },
     // Для Вечерних платьев
-    { id: 4, category_id: 2, name: 'Коктейльные', slug: 'cocktail', cover_image: 'subcategory-cocktail.jpg' },
-    { id: 5, category_id: 2, name: 'В пол', slug: 'maxi', cover_image: 'subcategory-maxi.jpg' },
+    { id: 4, category_id: 2, name: 'Коктейльные', slug: 'cocktail', cover_image: 'subcategory-cocktail.jpg', seo_text: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.' },
+    { id: 5, category_id: 2, name: 'В пол', slug: 'maxi', cover_image: 'subcategory-maxi.jpg', seo_text: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.' },
 ];
 
 const products = [
@@ -67,12 +67,12 @@ async function seed() {
         
         console.log('Добавление категорий...');
         for (const c of categories) {
-            await run('INSERT INTO categories (id, name, slug, cover_image, description) VALUES (?, ?, ?, ?, ?)', [c.id, c.name, c.slug, c.cover_image, c.description]);
+            await run('INSERT INTO categories (id, name, slug, cover_image, description, seo_text) VALUES (?, ?, ?, ?, ?, ?)', [c.id, c.name, c.slug, c.cover_image, c.description, c.seo_text]);
         }
 
         console.log('Добавление подкатегорий...');
         for (const s of subcategories) {
-            await run('INSERT INTO subcategories (id, category_id, name, slug, cover_image) VALUES (?, ?, ?, ?, ?)', [s.id, s.category_id, s.name, s.slug, s.cover_image]);
+            await run('INSERT INTO subcategories (id, category_id, name, slug, cover_image, seo_text) VALUES (?, ?, ?, ?, ?, ?)', [s.id, s.category_id, s.name, s.slug, s.cover_image, s.seo_text]);
         }
 
         console.log('Добавление товаров...');

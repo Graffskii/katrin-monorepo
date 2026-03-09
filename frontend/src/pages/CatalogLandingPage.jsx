@@ -4,6 +4,8 @@ import Footer from '../components/MainPage/Footer';
 import CategoriesGrid from '../components/MainPage/CategoriesGrid';
 import { useParams, Link } from 'react-router-dom';
 
+import ServicesBanner from '../components/MainPage/ServicesBanner';
+
 const CatalogLandingPage = () => {
     const [categories, setCategories] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -28,7 +30,7 @@ const CatalogLandingPage = () => {
         <div className="flex flex-col min-h-screen">
             <Header />
             {/* --- ИЗМЕНЯЕМ ФОН И СТРУКТУРУ --- */}
-            <main className="flex-grow pt-24 bg-secondary">
+            <main className="flex-grow pt-24">
                 <div className="max-w-screen-2xl mx-auto px-4 py-16">
                     <div className="text-sm text-gray-500 mb-8">
                         <Link to="/" className="hover:text-primary">Главная</Link>
@@ -47,6 +49,7 @@ const CatalogLandingPage = () => {
                     )}
                 </div>
             </main>
+            <ServicesBanner />
             <Footer />
         </div>
     );

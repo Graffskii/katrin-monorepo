@@ -36,7 +36,8 @@ function createDatabase(dbPath = 'db.sqlite') {
             name TEXT NOT NULL,
             slug TEXT UNIQUE NOT NULL,
             cover_image TEXT,
-            description TEXT
+            description TEXT,
+            seo_text TEXT
           )
         `);
 
@@ -47,6 +48,7 @@ function createDatabase(dbPath = 'db.sqlite') {
             name TEXT NOT NULL,
             slug TEXT UNIQUE NOT NULL,
             cover_image TEXT,
+            seo_text TEXT,
             FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
           )
         `);

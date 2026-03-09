@@ -3,20 +3,48 @@ import { useParams, Link } from 'react-router-dom';
 import Header from '../components/MainPage/Header';
 import Footer from '../components/MainPage/Footer';
 import { useFavorites } from '../contexts/FavoritesContext';
+import ProductCard from '../components/catalog/ProductCard';
 
-// Компонент-заглушка для слайдера "Смотреть также", его можно будет улучшить
-const RelatedProductsSlider = ({ currentProductId }) => {
-  // В реальном приложении здесь был бы запрос к API для получения похожих товаров
-  // Сейчас это просто заглушка
+const RelatedProductsSlider = ({ currentProductId, subcategorySlug }) => {
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const { isFavorite, toggleFavorite } = useFavorites();
+
+  useEffect(() => {
+      if (!subcategorySlug) return;
+      const fetchRelated = async () => {
+          try {
+              // Запрашиваем всю подкатегорию
+              const res = await fetch(`/api/catalog/subcategory/${subcategorySlug}`);
+              const data = await res.json();
+              // Фильтруем: убираем текущий товар и берем первые 4 штуки
+              const filtered = data.products
+                  .filter(p => p.id !== currentProductId)
+                  .slice(0, 4);
+              setRelatedProducts(filtered);
+          } catch (err) {
+              console.error(err);
+          }
+      };
+      fetchRelated();
+  }, [subcategorySlug, currentProductId]);
+
+  if (relatedProducts.length === 0) return null;
+
   return (
-    <div className="mt-24">
-      <h2 className="text-2xl font-playfair font-bold text-center">Смотреть также</h2>
-      <p className="text-center text-gray-500 mt-2 mb-8">Возможно, вам понравятся эти модели</p>
-      {/* Здесь будет карусель/слайдер */}
-      <div className="text-center text-gray-400 py-16 border rounded-md">
-        (Скоро здесь появится слайдер с похожими товарами)
+      <div className="mt-24 border-t pt-16 lg:text-xl">
+          <h2 className="text-3xl font-playfair font-bold text-center mb-12">Похожие модели</h2>
+          {/* Используем простую сетку вместо сложного слайдера, это надежнее и красивее для 4 товаров */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {relatedProducts.map(product => (
+                  <ProductCard 
+                      key={product.id} 
+                      product={product} 
+                      isFavorite={isFavorite(product.id)}
+                      onToggleFavorite={toggleFavorite}
+                  />
+              ))}
+          </div>
       </div>
-    </div>
   );
 };
 
@@ -53,7 +81,7 @@ const ProductDetailPage = () => {
   const mainImageUrl = product.images?.[activeImage] ? `/images/${product.images[activeImage]}` : 'https://via.placeholder.com/800x1200';
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen lg:text-xl">
       <main className="flex-grow pt-24 bg-white">
         <div className="max-w-screen-2xl mx-auto px-4 py-12">
           {/* Хлебные крошки */}
@@ -77,7 +105,7 @@ const ProductDetailPage = () => {
 
           <div className="grid lg:grid-cols-2 gap-12 items-start">
             {/* Левая колонка: Галерея */}
-            <div className="flex flex-col-reverse sm:flex-row gap-4 sticky top-24">
+            <div className="flex flex-col-reverse sm:flex-row gap-4 lg:sticky lg:top-24">
               <div className="flex sm:flex-col gap-3 justify-center">
                 {product.images?.map((img, index) => (
                   <button
@@ -119,20 +147,11 @@ const ProductDetailPage = () => {
                 <Link to="/appointment" className="flex-1 text-center bg-primary text-white px-8 py-3 rounded-md font-semibold hover:bg-primary/90 transition-all shadow">
                   Записаться на примерку
                 </Link>
-                <button
-                  onClick={() => toggleFavorite(product.id)}
-                  className="w-12 h-12 flex items-center justify-center border-2 rounded-md transition-colors"
-                  aria-label="Добавить в избранное"
-                >
-                  <svg className="w-6 h-6" fill={isFavorite(product.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 010-6.364z" />
-                  </svg>
-                </button>
               </div>
             </div>
           </div>
 
-          <RelatedProductsSlider currentProductId={product.id} />
+          <RelatedProductsSlider currentProductId={product.id} subcategorySlug={product.subcategory_slug} />
         </div>
       </main>
     </div>

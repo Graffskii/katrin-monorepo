@@ -6,7 +6,7 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite }) => {
   const imageUrl = product.main_image ? `/images/${product.main_image}` : 'https://via.placeholder.com/500x700';
 
   return (
-    <div className="group relative">
+    <div className="group relative lg:text-xl">
       <Link to={`/products/${product.id}`} className="block">
         <div className="aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-200">
           <img
@@ -17,17 +17,17 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite }) => {
         </div>
         <div className="mt-4 flex justify-between">
           <div>
-            <h3 className="text-sm text-gray-700 font-medium">
+            <h3 className="text-gray-700 font-medium">
               {product.name}
             </h3>
             <p className="mt-1 text-xs text-gray-500">{product.sku}</p>
           </div>
           <div className="text-right">
-            <p className="text-sm font-semibold text-gray-900">
+            <p className="font-semibold text-gray-900">
               {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(product.price)}
             </p>
             {product.old_price && (
-              <p className="text-xs text-gray-500 line-through">
+              <p className="text-gray-500 line-through">
                 {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(product.old_price)}
               </p>
             )}
