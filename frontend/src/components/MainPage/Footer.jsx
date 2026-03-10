@@ -32,7 +32,6 @@ const Footer = () => {
           <ul className="space-y-2 text-sm">
             <li><Link to="/services" className="hover:text-primary">Дополнительные услуги</Link></li>
             <li><Link to="/reviews" className="hover:text-primary">Отзывы</Link></li>
-            <li><Link to="/blog" className="hover:text-primary">Блог</Link></li>
           </ul>
         </div>
         
@@ -40,9 +39,8 @@ const Footer = () => {
         <div className="flex flex-col items-start">
             <h4 className="font-bold mb-4 text-gray-800">СОЦИАЛЬНЫЕ СЕТИ</h4>
             <div className="flex gap-3">
-              <a href="#" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-whatsapp-line"></i></a>
-              <a href="#" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-instagram-line"></i></a>
-              <a href="#" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-vk-line"></i></a>
+              <a href="https://www.instagram.com/katrin_salon_tomsk/" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-instagram-line"></i></a>
+              <a href="https://vk.com/club66770999" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-vk-line"></i></a>
             </div>
         </div>
       </div>

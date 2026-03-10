@@ -40,9 +40,8 @@ const Header = ({ variant }) => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <a href="#" className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200"><i className="ri-instagram-line"></i></a>
-              <a href="#" className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200"><i className="ri-vk-line"></i></a>
-              <a href="#" className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200"><i className="ri-whatsapp-line"></i></a>
+              <a href="https://www.instagram.com/katrin_salon_tomsk/" className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200"><i className="ri-instagram-line"></i></a>
+              <a href="https://vk.com/club66770999" className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200"><i className="ri-vk-line"></i></a>
             </div>
           </div>
         </div>
@@ -73,9 +72,6 @@ const Header = ({ variant }) => {
               <Link to="/appointment" className="bg-primary/10 text-primary font-semibold px-4 py-2 rounded-md hover:bg-primary/20 transition-colors">
                 Записаться на примерку
               </Link>
-              <button className="w-10 h-10 flex items-center justify-center border-2 rounded-full hover:border-primary transition-colors">
-                {/* <SearchIcon /> */} 🔍
-              </button>
             </div>
 
             {/* Бургер-меню (правая часть) */}
