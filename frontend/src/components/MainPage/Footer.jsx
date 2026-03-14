@@ -41,7 +41,7 @@ const Footer = () => {
             <div className="flex gap-3">
               <a href="https://www.instagram.com/katrin_salon_tomsk/" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-instagram-line"></i></a>
               <a href="https://vk.com/club66770999" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-vk-line"></i></a>
-              <a href="https://t.me/salon_katrin_tomsk" className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200"><i className="ri-telegram-line"></i></a>
+              <a href="https://vk.com/club66770999" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-telegram-line"></i></a>
             </div>
         </div>
       </div>
