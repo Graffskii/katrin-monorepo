@@ -36,12 +36,13 @@ const Header = ({ variant }) => {
             <div className="flex gap-8">
               <div>
                 <p>Г. ТОМСК, ПРОСПЕКТ ЛЕНИНА 95</p>
-                <p>+7 (383) 226-34-85</p>
+                <p>+7 (3822) 51‒08‒90</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <a href="https://www.instagram.com/katrin_salon_tomsk/" className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200"><i className="ri-instagram-line"></i></a>
               <a href="https://vk.com/club66770999" className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200"><i className="ri-vk-line"></i></a>
+              <a href="https://t.me/salon_katrin_tomsk" className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200"><i className="ri-telegram-line"></i></a>
             </div>
           </div>
         </div>

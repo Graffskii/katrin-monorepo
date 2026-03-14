@@ -7,6 +7,7 @@ import Services from './Services';
 import Contact from './Contact';
 import CategoriesGrid from './CategoriesGrid';
 import SeoText from '../SeoText';
+import FaqSection from './FaqSection';
 
 import ServicesBanner from './ServicesBanner';
 
@@ -61,6 +62,7 @@ const MainPage = () => {
           [&_strong]:font-semibold [&_strong]:text-gray-700"> {/* <-- ИЗМЕНЕНИЕ ЗДЕСЬ */}
           <About />
           <Services />
+          <FaqSection />
         </div>
       </main>
       <Footer />

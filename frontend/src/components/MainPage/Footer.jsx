@@ -10,7 +10,7 @@ const Footer = () => {
           <div>
             <h4 className="font-bold text-gray-800">КАТРИН ТОМСК</h4>
             <p className="text-sm">ПРОСПЕКТ ЛЕНИНА 95</p>
-            <p className="text-sm">ТЕЛ. 226-34-85</p>
+            <p className="text-sm">ТЕЛ. +7 (3822) 51‒08‒90</p>
             <Link to="/contacts" className="text-sm text-primary hover:underline">Смотреть на карте</Link>
           </div>
         </div>
@@ -41,11 +41,12 @@ const Footer = () => {
             <div className="flex gap-3">
               <a href="https://www.instagram.com/katrin_salon_tomsk/" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-instagram-line"></i></a>
               <a href="https://vk.com/club66770999" className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200 border"><i className="ri-vk-line"></i></a>
+              <a href="https://t.me/salon_katrin_tomsk" className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-gray-500 hover:bg-gray-200"><i className="ri-telegram-line"></i></a>
             </div>
         </div>
       </div>
       <div className="max-w-screen-2xl mx-auto px-4 mt-12 text-center text-xs text-gray-500 border-t pt-8">
-        © 2025 Katrin Bridal Salon. Все права защищены.
+        © 2026 Katrin Bridal Salon.
       </div>
     </footer>
   );
