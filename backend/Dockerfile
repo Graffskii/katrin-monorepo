@@ -1,4 +1,6 @@
-FROM node:23
+FROM node:25-bookworm-slim
+
+RUN apt-get update && apt-get install -y python3 make g++ 
 
 WORKDIR /app
 

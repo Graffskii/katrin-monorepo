@@ -43,5 +43,27 @@ router.get("/product/:id", async (req, res) => {
     }
 });
 
+// GET /api/catalog/reviews - получить все отзывы
+router.get("/reviews", async (req, res) => {
+    try {
+        const reviews = await db.getPublishedReviews();
+        res.json(reviews);
+    } catch (error) {
+        console.error("Ошибка при получении отзывов:", error);
+        res.status(500).json({ error: "Ошибка сервера" });
+    }
+});
+
+// GET /api/catalog/brides - получить все фото невест
+router.get("/brides", async (req, res) => {
+    try {
+        const brides = await db.getPublishedBrides();
+        res.json(brides);
+    } catch (error) {
+        console.error("Ошибка при получении галереи невест:", error);
+        res.status(500).json({ error: "Ошибка сервера" });
+    }
+});
+
 
 module.exports = router;

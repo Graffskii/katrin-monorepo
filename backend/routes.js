@@ -1,87 +1,162 @@
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const cookieParser = require("cookie-parser");
-const { getPublishedGallery, setDraft, getAllGallery, addImage, publishGallery, updateImage, deleteImage } = require("./admin");
-const { getAdmin, addAdmin } = require("./admin");
+const db = require("./admin");
 const authMiddleware = require("./middleware/authMiddleware");
-const adminMiddleware = require("./middleware/roleMiddleware");
-const upload = require("./upload");
-
+const { uploadSingle, uploadMultiple, optimizeImage } = require("./upload");
 
 const router = express.Router();
 
-// Отображение админ-панели
-router.get("/", authMiddleware, async (req, res) => {
-    const gallery = await getAllGallery(true); // Показываем черновики и опубликованные фото
-    const user = await getAdmin(req.cookies.user)
-    res.json({ gallery });
-});
+// Все роуты ниже защищены: только для авторизованных
+router.use(authMiddleware);
 
-// Обновление информации о фото
-router.post("/edit", authMiddleware, async (req, res) => {
-    const { id, category, caption } = req.body;
-    await updateImage(id, category, caption);
-    res.json({success: true});
-});
+// ==========================================
+// КАТЕГОРИИ
+// ==========================================
 
-// Удаление фото http://127.0.0.1:3001/admin
-router.post("/delete", authMiddleware, async (req, res) => {
-    const { id } = req.body;
-    const image = await deleteImage(id);
-    if (image) {
-        const filePath = path.join(__dirname, "static", image.filename);
-        fs.unlink(filePath, (err) => {
-            if (err) console.error("Ошибка удаления файла:", err);
-        });
-    }
-    res.json({success: true});
-});
-
-// Публикация галереи
-router.post("/publish", authMiddleware, async (req, res) => {
-    await publishGallery();
-    res.json({success: true});
-});
-
-router.post("/set-draft", authMiddleware, async (req, res) => {
-    const { id } = req.body;
-    await setDraft(id);
-    res.json({success: true});
-  });
-
-// **Защита загрузки фото (для admin и moderator)**
-router.post("/upload", authMiddleware, upload.single("image"), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).send("Ошибка загрузки файла.");
-    }
+router.get("/categories", (req, res) => {
     try {
-        await addImage(req.file.filename, req.body.category, req.body.caption);
-        res.json({success: true});
-    } catch (error) {
-        console.error("Ошибка при сохранении в БД:", error);
-        res.status(500).send("Ошибка сервера.");
-    }
+        const categories = db.getAllCategories();
+        res.json(categories);
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// **Эндпоинт для создания модератора (доступен только admin)**
-router.post("/create-moderator", authMiddleware, adminMiddleware, async (req, res) => {
-    const { username, password } = req.body;
-
+router.post("/categories", uploadSingle, optimizeImage, (req, res) => {
     try {
-        await addAdmin(username, password, "moderator");
-        res.json({ success: true, message: "Модератор добавлен!" });
-    } catch (error) {
-        res.status(500).json({ error: "Ошибка при создании модератора" });
-    }
+        const { name, slug, description } = req.body;
+        const coverImage = req.optimizedFilenames ? req.optimizedFilenames[0] : null;
+        db.createCategory(name, slug, description, coverImage);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Предпросмотр
-router.get("/preview", authMiddleware, async (req, res) => {
-    const gallery = await getAllGallery(true); // true - брать из черновика
-    res.json({success: true});
+router.put("/categories/:id", uploadSingle, optimizeImage, (req, res) => {
+    try {
+        const { name, slug, description } = req.body;
+        const coverImage = req.optimizedFilenames ? req.optimizedFilenames[0] : null;
+        db.updateCategory(req.params.id, name, slug, description, coverImage);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete("/categories/:id", (req, res) => {
+    try {
+        db.deleteCategory(req.params.id);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==========================================
+// ПОДКАТЕГОРИИ
+// ==========================================
+
+router.get("/categories/:categoryId/subcategories", (req, res) => {
+    try {
+        const subs = db.getSubcategoriesByCategory(req.params.categoryId);
+        res.json(subs);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post("/subcategories", uploadSingle, optimizeImage, (req, res) => {
+    try {
+        const { category_id, name, slug, seo_text } = req.body;
+        const coverImage = req.optimizedFilenames ? req.optimizedFilenames[0] : null;
+        db.createSubcategory(category_id, name, slug, seo_text, coverImage);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put("/subcategories/:id", uploadSingle, optimizeImage, (req, res) => {
+    try {
+        const { name, slug, seo_text } = req.body;
+        const coverImage = req.optimizedFilenames ? req.optimizedFilenames[0] : null;
+        db.updateSubcategory(req.params.id, name, slug, seo_text, coverImage);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete("/subcategories/:id", (req, res) => {
+    try {
+        db.deleteSubcategory(req.params.id);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==========================================
+// ТОВАРЫ (ПЛАТЬЯ)
+// ==========================================
+
+router.get("/subcategories/:subcategoryId/products", (req, res) => {
+    try {
+        const products = db.getProductsBySubcategory(req.params.subcategoryId);
+        res.json(products);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Получить один товар для формы редактирования
+router.get("/products/:id", (req, res) => {
+    try {
+        const product = db.getProductForAdmin(req.params.id);
+        if (!product) return res.status(404).json({ error: "Товар не найден" });
+        res.json(product);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Обратите внимание: тут мы используем uploadMultiple (до 10 фото за раз)
+router.post("/products", uploadMultiple, optimizeImage, (req, res) => {
+    try {
+        // 1. Создаем запись о товаре в БД
+        const productId = db.createProduct(req.body);
+        
+        // 2. Если были загружены картинки, привязываем их к этому товару
+        if (req.optimizedFilenames && req.optimizedFilenames.length > 0) {
+            db.addProductImages(productId, req.optimizedFilenames);
+        }
+        res.json({ success: true, id: productId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put("/products/:id", (req, res) => {
+    try {
+        db.updateProduct(req.params.id, req.body);
+        // Загрузку новых фото для существующего товара лучше сделать отдельным роутом позже
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete("/products/:id", (req, res) => {
+    try {
+        db.deleteProduct(req.params.id);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Добавить новые фото к существующему товару
+router.post("/products/:id/images", uploadMultiple, optimizeImage, (req, res) => {
+    try {
+        if (req.optimizedFilenames && req.optimizedFilenames.length > 0) {
+            db.addProductImages(req.params.id, req.optimizedFilenames);
+            res.json({ success: true });
+        } else {
+            res.status(400).json({ error: "Файлы не загружены" });
+        }
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Удалить одно фото
+router.delete("/images/:imageId", (req, res) => {
+    try {
+        // Сначала узнаем имя файла, чтобы удалить его с диска
+        const image = db.getProductImage(req.params.imageId);
+        if (image) {
+            const filePath = path.join(__dirname, "static", image.filename);
+            // Удаляем файл асинхронно, не блокируя сервер
+            fs.unlink(filePath, (err) => {
+                if (err) console.error("Ошибка удаления файла с диска:", err);
+            });
+            // Удаляем запись из БД
+            db.deleteProductImage(req.params.imageId);
+        }
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = router;

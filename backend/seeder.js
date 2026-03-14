@@ -47,50 +47,51 @@ const productImages = [
     { product_id: 4, filename: 'grace_1.jpg', sort_order: 0 },
 ];
 
-// --- ЛОГИКА ЗАПОЛНЕНИЯ ---
+function seed() {
+    console.log('Начинаю заполнение базы данных (better-sqlite3)...');
 
-async function seed() {
-    console.log('Начинаю заполнение базы данных V2...');
-
-    const run = (query, params) => new Promise((resolve, reject) => {
-        db.run(query, params, function(err) {
-            if (err) reject(err); else resolve({ id: this.lastID });
-        });
-    });
-
-    try {
+    // Оборачиваем все операции в одну транзакцию. 
+    // Это невероятно быстро и гарантирует, что если будет ошибка, база не сломается наполовину.
+    const insertData = db.transaction(() => {
         console.log('Очистка старых данных...');
-        await run('DELETE FROM product_images');
-        await run('DELETE FROM products');
-        await run('DELETE FROM subcategories');
-        await run('DELETE FROM categories');
+        db.prepare('DELETE FROM product_images').run();
+        db.prepare('DELETE FROM products').run();
+        db.prepare('DELETE FROM subcategories').run();
+        db.prepare('DELETE FROM categories').run();
         
         console.log('Добавление категорий...');
+        const insertCategory = db.prepare('INSERT INTO categories (id, name, slug, cover_image, description) VALUES (?, ?, ?, ?, ?)');
         for (const c of categories) {
-            await run('INSERT INTO categories (id, name, slug, cover_image, description, seo_text) VALUES (?, ?, ?, ?, ?, ?)', [c.id, c.name, c.slug, c.cover_image, c.description, c.seo_text]);
+            insertCategory.run(c.id, c.name, c.slug, c.cover_image, c.description);
         }
 
         console.log('Добавление подкатегорий...');
+        const insertSubcat = db.prepare('INSERT INTO subcategories (id, category_id, name, slug, cover_image) VALUES (?, ?, ?, ?, ?)');
         for (const s of subcategories) {
-            await run('INSERT INTO subcategories (id, category_id, name, slug, cover_image, seo_text) VALUES (?, ?, ?, ?, ?, ?)', [s.id, s.category_id, s.name, s.slug, s.cover_image, s.seo_text]);
+            insertSubcat.run(s.id, s.category_id, s.name, s.slug, s.cover_image);
         }
 
         console.log('Добавление товаров...');
+        const insertProduct = db.prepare('INSERT INTO products (id, subcategory_id, name, sku, price, old_price, description) VALUES (?, ?, ?, ?, ?, ?, ?)');
         for (const p of products) {
-            await run('INSERT INTO products (id, subcategory_id, name, sku, price, old_price, description) VALUES (?, ?, ?, ?, ?, ?, ?)', [p.id, p.subcategory_id, p.name, p.sku, p.price, p.old_price, p.description]);
+            insertProduct.run(p.id, p.subcategory_id, p.name, p.sku, p.price, p.old_price, p.description);
         }
 
         console.log('Добавление изображений товаров...');
+        const insertImage = db.prepare('INSERT INTO product_images (product_id, filename, sort_order) VALUES (?, ?, ?)');
         for (const img of productImages) {
-            await run('INSERT INTO product_images (product_id, filename, sort_order) VALUES (?, ?, ?)', [img.product_id, img.filename, img.sort_order]);
+            insertImage.run(img.product_id, img.filename, img.sort_order);
         }
+    });
 
-        console.log('✅ База данных успешно заполнена тестовыми данными!');
-
+    try {
+        // Выполняем транзакцию синхронно
+        insertData();
+        console.log('✅ База данных успешно заполнена!');
     } catch (error) {
         console.error('❌ Ошибка при заполнении базы данных:', error);
     } finally {
-        db.close(() => console.log('Соединение с БД закрыто.'));
+        db.close();
     }
 }
 
