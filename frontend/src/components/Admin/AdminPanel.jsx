@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import CatalogManager from './CatalogManager'; // <-- Будет наш главный компонент
+import CatalogManager from './CatalogManager'; 
+import SimpleGalleryManager from './SimpleGalleryManager';
 
-const ICONS = { catalog: '👗', logout: '🚪' };
+const ICONS = { catalog: '👗', reviews: '💬', brides: '👰', logout: '🚪' };
 
 const AdminPanel = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('catalog');
 
   const navItems = [
-    { id: 'catalog', label: 'Управление каталогом', icon: ICONS.catalog },
+    { id: 'catalog', label: 'Каталог платьев', icon: ICONS.catalog },
+    { id: 'reviews', label: 'Скриншоты отзывов', icon: ICONS.reviews },
+    { id: 'brides', label: 'Галерея невест', icon: ICONS.brides },
   ];
 
   return (
@@ -44,8 +47,11 @@ const AdminPanel = () => {
       </div>
 
       {/* Основной контент */}
-      <div className="flex-1 p-8 overflow-auto">
+      <div className="flex-1 p-8 overflow-auto bg-gray-50">
         {activeTab === 'catalog' && <CatalogManager />}
+        
+        {activeTab === 'reviews' && <SimpleGalleryManager title="Скриншоты отзывов (Flamp и др.)" apiPath="reviews" />}
+        {activeTab === 'brides' && <SimpleGalleryManager title="Наши невесты (Фотографии)" apiPath="brides" />}
       </div>
     </div>
   );

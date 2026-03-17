@@ -25,7 +25,9 @@ const ProductManager = ({ subcategoryId }) => {
             const response = await fetch(`/api/admin/subcategories/${subcategoryId}/products`, { credentials: 'include' });
             const data = await response.json();
             setProducts(data);
-        } catch (error) { console.error(error); } 
+        } catch (error) { 
+            console.error(error); 
+        } 
         finally { setIsLoading(false); }
     };
 

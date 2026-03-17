@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/MainPage/Header';
 import Footer from '../components/MainPage/Footer';
 import ServicesBanner from '../components/MainPage/ServicesBanner';
@@ -14,7 +14,33 @@ const bridePhotos = Array.from({ length: 15 }, (_, i) => `bride-${i + 1}.jpg`);
 
 // --- КОМПОНЕНТ СТРАНИЦЫ ---
 const ReviewsPage = () => {
+    // --- ТЕПЕРЬ МЫ ХРАНИМ ДАННЫЕ В СТЕЙТЕ ---
+    const [reviews, setReviews] = useState([]);
+    const [brides, setBrides] = useState([]);
     const [selectedImage, setSelectedImage] = useState(null);
+
+    // --- ДЕЛАЕМ ЗАПРОС К НАШЕМУ НОВОМУ API ПРИ ЗАГРУЗКЕ СТРАНИЦЫ ---
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Используем Promise.all для параллельной загрузки (чтобы было быстрее)
+                const [reviewsRes, bridesRes] = await Promise.all([
+                    fetch('/api/catalog/reviews'),
+                    fetch('/api/catalog/brides')
+                ]);
+
+                const reviewsData = await reviewsRes.json();
+                const bridesData = await bridesRes.json();
+
+                setReviews(reviewsData);
+                setBrides(bridesData);
+            } catch (error) {
+                console.error("Ошибка загрузки данных:", error);
+            }
+        };
+        fetchData();
+    }, []);
+
     return (
         <div className="flex flex-col min-h-screen lg:text-xl">
             <Header />
@@ -41,11 +67,12 @@ const ReviewsPage = () => {
                             navigation
                             className="h-[500px]" // Задаем высоту для всей карусели
                         >
-                            {reviewScreenshots.map((screenshot, index) => (
-                                <SwiperSlide key={index} className="!w-auto" onClick={() => setSelectedImage('reviews/'+screenshot)}> {/* Ширина слайда по контенту */}
-                                    <img 
-                                        src={`/images/reviews/${screenshot}`} 
-                                        alt={`Отзыв ${index + 1}`}
+                            {reviews.map((review) => (
+                                <SwiperSlide key={review.id} className="!w-auto cursor-pointer" onClick={() => setSelectedImage(review.filename)}>
+                                    <img
+                                        // Файлы теперь лежат в общей папке /images/, так как их туда загружает multer
+                                        src={`/images/${review.filename}`}
+                                        alt="Отзыв"
                                         className="h-full w-auto object-contain rounded-lg shadow-lg"
                                     />
                                 </SwiperSlide>
@@ -60,13 +87,13 @@ const ReviewsPage = () => {
                         <h2 className="text-4xl font-playfair text-gray-900 font-bold text-center mb-12">Наши невесты</h2>
                         {/* Для masonry-галереи проще всего использовать CSS-колонки */}
                         <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4">
-                            {bridePhotos.map((photo, index) => (
-                                <img 
-                                    key={index}
-                                    src={`/images/brides/${photo}`} 
-                                    alt={`Невеста ${index + 1}`}
+                            {brides.map((bride) => (
+                                <img
+                                    key={bride.id}
+                                    src={`/images/${bride.filename}`}
+                                    onClick={() => setSelectedImage(bride.filename)}
+                                    alt="Невеста"
                                     className="w-full h-auto object-cover mb-4 break-inside-avoid rounded-md shadow-sm"
-                                    onClick={() => setSelectedImage('brides/'+photo)}
                                 />
                             ))}
                         </div>
@@ -80,17 +107,17 @@ const ReviewsPage = () => {
             <Footer />
 
             {selectedImage && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
                     onClick={() => setSelectedImage(null)}
                 >
-                    <img 
-                        src={`/images/${selectedImage}`} 
+                    <img
+                        src={`/images/${selectedImage}`}
                         alt="Просмотр отзыва"
                         className="max-w-full max-h-full object-contain"
                         onClick={(e) => e.stopPropagation()} // Предотвращаем закрытие по клику на само фото
                     />
-                    <button 
+                    <button
                         className="absolute top-4 right-4 text-white text-4xl"
                         onClick={() => setSelectedImage(null)}
                     >

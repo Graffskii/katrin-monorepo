@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 function createDatabase(dbPath = 'db.sqlite') {
   // Инициализация. В better-sqlite3 это происходит синхронно.
   const db = new Database(dbPath);
-  
+
   // Включаем внешние ключи
   db.pragma('foreign_keys = ON');
 
@@ -47,7 +47,7 @@ function createDatabase(dbPath = 'db.sqlite') {
             price REAL NOT NULL,
             old_price REAL,
             is_published BOOLEAN DEFAULT 1,
-            FOREIGN KEY (subcategory_id) REFERENCES subcategories(id) ON DELETE SET NULL
+            FOREIGN KEY (subcategory_id) REFERENCES subcategories(id) ON DELETE CASCADE
         );
 
         CREATE TABLE IF NOT EXISTS product_images (
@@ -79,22 +79,22 @@ function createDatabase(dbPath = 'db.sqlite') {
 
   // --- 2. ФУНКЦИИ ДЛЯ АДМИНОВ ---
   function getAdmin(username) {
-      // .prepare компилирует запрос, .get выполняет и возвращает 1 строку (или undefined)
-      const stmt = db.prepare("SELECT * FROM admins WHERE username = ?");
-      return stmt.get(username); 
+    // .prepare компилирует запрос, .get выполняет и возвращает 1 строку (или undefined)
+    const stmt = db.prepare("SELECT * FROM admins WHERE username = ?");
+    return stmt.get(username);
   }
-  
+
   // Эта функция остается асинхронной, так как bcrypt.hash работает асинхронно
   async function addAdmin(username, password, role = "moderator") {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const stmt = db.prepare("INSERT INTO admins (username, password, role) VALUES (?, ?, ?)");
-      stmt.run(username, hashedPassword, role); // .run для INSERT/UPDATE/DELETE
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const stmt = db.prepare("INSERT INTO admins (username, password, role) VALUES (?, ?, ?)");
+    stmt.run(username, hashedPassword, role); // .run для INSERT/UPDATE/DELETE
   }
 
   // --- 3. ФУНКЦИИ ДЛЯ ПУБЛИЧНОГО API ---
 
   function getCatalogStructure() {
-      const stmt = db.prepare(`
+    const stmt = db.prepare(`
           SELECT 
               c.id as category_id, c.name as category_name, c.slug as category_slug, c.cover_image as category_cover_image,
               s.id as subcategory_id, s.name as subcategory_name, s.slug as subcategory_slug, s.cover_image as subcategory_cover_image
@@ -102,33 +102,33 @@ function createDatabase(dbPath = 'db.sqlite') {
           LEFT JOIN subcategories s ON c.id = s.category_id
           ORDER BY c.id, s.id;
       `);
-      const rows = stmt.all(); // .all возвращает массив всех строк
+    const rows = stmt.all(); // .all возвращает массив всех строк
 
-      const structure = {};
-      rows.forEach(row => {
-          if (!structure[row.category_id]) {
-              structure[row.category_id] = {
-                  id: row.category_id,
-                  name: row.category_name,
-                  slug: row.category_slug,
-                  cover_image: row.category_cover_image,
-                  subcategories: []
-              };
-          }
-          if (row.subcategory_id) {
-              structure[row.category_id].subcategories.push({
-                  id: row.subcategory_id,
-                  name: row.subcategory_name,
-                  slug: row.subcategory_slug,
-                  cover_image: row.subcategory_cover_image
-              });
-          }
-      });
-      return Object.values(structure);
+    const structure = {};
+    rows.forEach(row => {
+      if (!structure[row.category_id]) {
+        structure[row.category_id] = {
+          id: row.category_id,
+          name: row.category_name,
+          slug: row.category_slug,
+          cover_image: row.category_cover_image,
+          subcategories: []
+        };
+      }
+      if (row.subcategory_id) {
+        structure[row.category_id].subcategories.push({
+          id: row.subcategory_id,
+          name: row.subcategory_name,
+          slug: row.subcategory_slug,
+          cover_image: row.subcategory_cover_image
+        });
+      }
+    });
+    return Object.values(structure);
   }
 
   function getSubCategoryWithProducts(slug) {
-      const subcategoryStmt = db.prepare(`
+    const subcategoryStmt = db.prepare(`
           SELECT 
               s.*,
               c.name as category_name,
@@ -137,24 +137,24 @@ function createDatabase(dbPath = 'db.sqlite') {
           JOIN categories c ON s.category_id = c.id
           WHERE s.slug = ?
       `);
-      const subcategory = subcategoryStmt.get(slug);
+    const subcategory = subcategoryStmt.get(slug);
 
-      if (!subcategory) return null;
+    if (!subcategory) return null;
 
-      const productsStmt = db.prepare(`
+    const productsStmt = db.prepare(`
           SELECT 
               p.*,
               (SELECT filename FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as main_image
           FROM products p
           WHERE p.subcategory_id = ? AND p.is_published = 1
       `);
-      subcategory.products = productsStmt.all(subcategory.id);
+    subcategory.products = productsStmt.all(subcategory.id);
 
-      return subcategory;
+    return subcategory;
   }
 
   function getProductDetails(productId) {
-      const productStmt = db.prepare(`
+    const productStmt = db.prepare(`
           SELECT
               p.*,
               s.name as subcategory_name,
@@ -166,23 +166,23 @@ function createDatabase(dbPath = 'db.sqlite') {
           LEFT JOIN categories c ON s.category_id = c.id
           WHERE p.id = ? AND p.is_published = 1
       `);
-      const product = productStmt.get(productId);
+    const product = productStmt.get(productId);
 
-      if (!product) return null;
+    if (!product) return null;
 
-      const imagesStmt = db.prepare("SELECT filename FROM product_images WHERE product_id = ? ORDER BY sort_order ASC");
-      const images = imagesStmt.all(productId);
-      product.images = images.map(img => img.filename);
+    const imagesStmt = db.prepare("SELECT filename FROM product_images WHERE product_id = ? ORDER BY sort_order ASC");
+    const images = imagesStmt.all(productId);
+    product.images = images.map(img => img.filename);
 
-      return product;
+    return product;
   }
 
   function getPublishedReviews() {
-      return db.prepare("SELECT * FROM reviews WHERE is_published = 1 ORDER BY sort_order ASC, id DESC").all();
+    return db.prepare("SELECT * FROM reviews WHERE is_published = 1 ORDER BY sort_order ASC, id DESC").all();
   }
 
   function getPublishedBrides() {
-      return db.prepare("SELECT * FROM brides_gallery WHERE is_published = 1 ORDER BY sort_order ASC, id DESC").all();
+    return db.prepare("SELECT * FROM brides_gallery WHERE is_published = 1 ORDER BY sort_order ASC, id DESC").all();
   }
 
   // --- ФУНКЦИИ ДЛЯ АДМИН-ПАНЕЛИ (CRUD) ---
@@ -190,57 +190,74 @@ function createDatabase(dbPath = 'db.sqlite') {
   // === КАТЕГОРИИ ===
   function getAllCategories() {
     return db.prepare("SELECT * FROM categories ORDER BY id DESC").all();
-}
+  }
 
-function createCategory(name, slug, description, coverImage) {
+  function createCategory(name, slug, description, coverImage) {
     const stmt = db.prepare("INSERT INTO categories (name, slug, description, cover_image) VALUES (?, ?, ?, ?)");
     return stmt.run(name, slug, description, coverImage);
-}
+  }
 
-function updateCategory(id, name, slug, description, coverImage) {
+  function updateCategory(id, name, slug, description, coverImage) {
     // Если coverImage не передан (не загружали новую картинку), обновляем без него
     if (coverImage) {
-        const stmt = db.prepare("UPDATE categories SET name = ?, slug = ?, description = ?, cover_image = ? WHERE id = ?");
-        return stmt.run(name, slug, description, coverImage, id);
+      const stmt = db.prepare("UPDATE categories SET name = ?, slug = ?, description = ?, cover_image = ? WHERE id = ?");
+      return stmt.run(name, slug, description, coverImage, id);
     } else {
-        const stmt = db.prepare("UPDATE categories SET name = ?, slug = ?, description = ? WHERE id = ?");
-        return stmt.run(name, slug, description, id);
+      const stmt = db.prepare("UPDATE categories SET name = ?, slug = ?, description = ? WHERE id = ?");
+      return stmt.run(name, slug, description, id);
     }
-}
+  }
 
-function deleteCategory(id) {
+  function deleteCategory(id) {
     // ON DELETE CASCADE в БД автоматически удалит подкатегории и товары
     const stmt = db.prepare("DELETE FROM categories WHERE id = ?");
     return stmt.run(id);
-}
+  }
 
-// === ПОДКАТЕГОРИИ ===
-function getSubcategoriesByCategory(categoryId) {
+  // === ПОДКАТЕГОРИИ ===
+  function getSubcategoriesByCategory(categoryId) {
     return db.prepare("SELECT * FROM subcategories WHERE category_id = ? ORDER BY id DESC").all(categoryId);
-}
+  }
 
-function createSubcategory(categoryId, name, slug, seoText, coverImage) {
+  function createSubcategory(categoryId, name, slug, seoText, coverImage) {
     const stmt = db.prepare("INSERT INTO subcategories (category_id, name, slug, seo_text, cover_image) VALUES (?, ?, ?, ?, ?)");
     return stmt.run(categoryId, name, slug, seoText, coverImage);
-}
+  }
 
-function updateSubcategory(id, name, slug, seoText, coverImage) {
+  function updateSubcategory(id, name, slug, seoText, coverImage) {
     if (coverImage) {
-        const stmt = db.prepare("UPDATE subcategories SET name = ?, slug = ?, seo_text = ?, cover_image = ? WHERE id = ?");
-        return stmt.run(name, slug, seoText, coverImage, id);
+      const stmt = db.prepare("UPDATE subcategories SET name = ?, slug = ?, seo_text = ?, cover_image = ? WHERE id = ?");
+      return stmt.run(name, slug, seoText, coverImage, id);
     } else {
-        const stmt = db.prepare("UPDATE subcategories SET name = ?, slug = ?, seo_text = ? WHERE id = ?");
-        return stmt.run(name, slug, seoText, id);
+      const stmt = db.prepare("UPDATE subcategories SET name = ?, slug = ?, seo_text = ? WHERE id = ?");
+      return stmt.run(name, slug, seoText, id);
     }
-}
+  }
 
-function deleteSubcategory(id) {
-    const stmt = db.prepare("DELETE FROM subcategories WHERE id = ?");
-    return stmt.run(id);
-}
+  function deleteSubcategoryAndFiles(subcategoryId) {
+    let filesToDelete = [];
 
-// === ТОВАРЫ ===
-function getProductsBySubcategory(subcategoryId) {
+    // 1. Получаем обложку самой подкатегории
+    const sub = db.prepare("SELECT cover_image FROM subcategories WHERE id = ?").get(subcategoryId);
+    if (sub && sub.cover_image) filesToDelete.push(sub.cover_image);
+
+    // 2. Ищем все товары, которые лежат в этой подкатегории
+    const products = db.prepare("SELECT id FROM products WHERE subcategory_id = ?").all(subcategoryId);
+
+    // 3. Собираем все картинки всех этих товаров
+    for (const p of products) {
+      const imgs = db.prepare("SELECT filename FROM product_images WHERE product_id = ?").all(p.id);
+      filesToDelete.push(...imgs.map(i => i.filename));
+    }
+
+    // 4. Удаляем подкатегорию (БД каскадно удалит все товары и записи об их фото)
+    db.prepare("DELETE FROM subcategories WHERE id = ?").run(subcategoryId);
+
+    return filesToDelete;
+  }
+
+  // === ТОВАРЫ ===
+  function getProductsBySubcategory(subcategoryId) {
     // Получаем товары и приклеиваем к ним главное фото для админки
     const stmt = db.prepare(`
         SELECT p.*, 
@@ -250,9 +267,9 @@ function getProductsBySubcategory(subcategoryId) {
         ORDER BY id DESC
     `);
     return stmt.all(subcategoryId);
-}
+  }
 
-function createProduct(data) {
+  function createProduct(data) {
     const { subcategory_id, name, sku, description, price, old_price, is_published } = data;
     const stmt = db.prepare(`
         INSERT INTO products (subcategory_id, name, sku, description, price, old_price, is_published) 
@@ -260,10 +277,10 @@ function createProduct(data) {
     `);
     // Выполняем запрос и сразу возвращаем ID созданного товара (понадобится для привязки фото)
     const result = stmt.run(subcategory_id, name, sku, description, price, old_price, is_published ? 1 : 0);
-    return result.lastInsertRowid; 
-}
+    return result.lastInsertRowid;
+  }
 
-function updateProduct(id, data) {
+  function updateProduct(id, data) {
     const { name, sku, description, price, old_price, is_published } = data;
     const stmt = db.prepare(`
         UPDATE products 
@@ -271,39 +288,85 @@ function updateProduct(id, data) {
         WHERE id = ?
     `);
     return stmt.run(name, sku, description, price, old_price, is_published ? 1 : 0, id);
-}
+  }
 
-function deleteProduct(id) {
-    const stmt = db.prepare("DELETE FROM products WHERE id = ?");
-    return stmt.run(id);
-}
+  function deleteProductAndFiles(productId) {
+    // 1. Собираем имена всех файлов этого товара
+    const images = db.prepare("SELECT filename FROM product_images WHERE product_id = ?").all(productId);
+    const filesToDelete = images.map(img => img.filename);
 
-function addProductImages(productId, filenames) {
+    // 2. Удаляем товар из БД (записи в product_images удалятся автоматически каскадом)
+    db.prepare("DELETE FROM products WHERE id = ?").run(productId);
+
+    // 3. Возвращаем список файлов для физического удаления
+    return filesToDelete;
+  }
+
+  function addProductImages(productId, filenames) {
     const stmt = db.prepare("INSERT INTO product_images (product_id, filename) VALUES (?, ?)");
     // Используем транзакцию для быстрой вставки нескольких картинок
     const insertMany = db.transaction((imgs) => {
-        for (const file of imgs) stmt.run(productId, file);
+      for (const file of imgs) stmt.run(productId, file);
     });
     insertMany(filenames);
-}
+  }
 
-function getProductImage(imageId) {
-  return db.prepare("SELECT filename FROM product_images WHERE id = ?").get(imageId);
-}
+  function getProductImage(imageId) {
+    return db.prepare("SELECT filename FROM product_images WHERE id = ?").get(imageId);
+  }
 
-function deleteProductImage(imageId) {
-  return db.prepare("DELETE FROM product_images WHERE id = ?").run(imageId);
-}
+  function deleteProductImage(imageId) {
+    return db.prepare("DELETE FROM product_images WHERE id = ?").run(imageId);
+  }
 
-// Получить полные данные товара для админки (включая ID картинок)
-function getProductForAdmin(productId) {
-  const product = db.prepare("SELECT * FROM products WHERE id = ?").get(productId);
-  if (!product) return null;
+  // Получить полные данные товара для админки (включая ID картинок)
+  function getProductForAdmin(productId) {
+    const product = db.prepare("SELECT * FROM products WHERE id = ?").get(productId);
+    if (!product) return null;
 
-  // Получаем объекты картинок (с ID), а не просто имена файлов
-  product.images = db.prepare("SELECT id, filename, sort_order FROM product_images WHERE product_id = ? ORDER BY sort_order ASC").all(productId);
-  return product;
-}
+    // Получаем объекты картинок (с ID), а не просто имена файлов
+    product.images = db.prepare("SELECT id, filename, sort_order FROM product_images WHERE product_id = ? ORDER BY sort_order ASC").all(productId);
+    return product;
+  }
+
+  // === ОТЗЫВЫ И НЕВЕСТЫ (АДМИНКА) ===
+
+  function getAllReviews() {
+    return db.prepare("SELECT * FROM reviews ORDER BY id DESC").all();
+  }
+
+  function addReviews(filenames) {
+    const insert = db.prepare("INSERT INTO reviews (filename) VALUES (?)");
+    const insertMany = db.transaction((files) => {
+      for (const file of files) insert.run(file);
+    });
+    insertMany(filenames);
+  }
+
+  function deleteReview(id) {
+    // Сначала получаем имя файла, чтобы потом удалить с диска
+    const review = db.prepare("SELECT filename FROM reviews WHERE id = ?").get(id);
+    db.prepare("DELETE FROM reviews WHERE id = ?").run(id);
+    return review;
+  }
+
+  function getAllBrides() {
+    return db.prepare("SELECT * FROM brides_gallery ORDER BY id DESC").all();
+  }
+
+  function addBrides(filenames) {
+    const insert = db.prepare("INSERT INTO brides_gallery (filename) VALUES (?)");
+    const insertMany = db.transaction((files) => {
+      for (const file of files) insert.run(file);
+    });
+    insertMany(filenames);
+  }
+
+  function deleteBride(id) {
+    const bride = db.prepare("SELECT filename FROM brides_gallery WHERE id = ?").get(id);
+    db.prepare("DELETE FROM brides_gallery WHERE id = ?").run(id);
+    return bride;
+  }
 
   return {
     db,
@@ -322,15 +385,21 @@ function getProductForAdmin(productId) {
     getSubcategoriesByCategory,
     createSubcategory,
     updateSubcategory,
-    deleteSubcategory,
+    deleteSubcategoryAndFiles,
     getProductsBySubcategory,
     createProduct,
     updateProduct,
-    deleteProduct,
+    deleteProductAndFiles,
     addProductImages,
     getProductImage,
     deleteProductImage,
-    getProductForAdmin
+    getProductForAdmin,
+    getAllReviews,
+    addReviews,
+    deleteReview,
+    getAllBrides,
+    addBrides,
+    deleteBride,
   };
 }
 

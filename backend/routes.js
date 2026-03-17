@@ -1,5 +1,7 @@
 const express = require("express");
 const db = require("./admin");
+const fs = require("fs");
+const path = require("path");
 const authMiddleware = require("./middleware/authMiddleware");
 const { uploadSingle, uploadMultiple, optimizeImage } = require("./upload");
 
@@ -7,6 +9,22 @@ const router = express.Router();
 
 // Все роуты ниже защищены: только для авторизованных
 router.use(authMiddleware);
+
+const handleMulterUpload = (uploadMiddleware) => (req, res, next) => {
+    uploadMiddleware(req, res, (err) => {
+        if (err) {
+            // Если ошибка от Multer (превышен размер или количество)
+            if (err.name === 'MulterError') {
+                if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ error: "Файл слишком большой (максимум 10 МБ)" });
+                if (err.code === 'LIMIT_UNEXPECTED_FILE') return res.status(400).json({ error: "Слишком много файлов за один раз (максимум 10)" });
+                return res.status(400).json({ error: err.message });
+            }
+            // Если наша кастомная ошибка (не картинка)
+            return res.status(400).json({ error: err.message });
+        }
+        next();
+    });
+};
 
 // ==========================================
 // КАТЕГОРИИ
@@ -19,7 +37,7 @@ router.get("/categories", (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post("/categories", uploadSingle, optimizeImage, (req, res) => {
+router.post("/categories", handleMulterUpload(uploadSingle), optimizeImage, (req, res) => {
     try {
         const { name, slug, description } = req.body;
         const coverImage = req.optimizedFilenames ? req.optimizedFilenames[0] : null;
@@ -28,7 +46,7 @@ router.post("/categories", uploadSingle, optimizeImage, (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.put("/categories/:id", uploadSingle, optimizeImage, (req, res) => {
+router.put("/categories/:id", handleMulterUpload(uploadSingle), optimizeImage, (req, res) => {
     try {
         const { name, slug, description } = req.body;
         const coverImage = req.optimizedFilenames ? req.optimizedFilenames[0] : null;
@@ -55,7 +73,7 @@ router.get("/categories/:categoryId/subcategories", (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post("/subcategories", uploadSingle, optimizeImage, (req, res) => {
+router.post("/subcategories", handleMulterUpload(uploadSingle), optimizeImage, (req, res) => {
     try {
         const { category_id, name, slug, seo_text } = req.body;
         const coverImage = req.optimizedFilenames ? req.optimizedFilenames[0] : null;
@@ -64,7 +82,7 @@ router.post("/subcategories", uploadSingle, optimizeImage, (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.put("/subcategories/:id", uploadSingle, optimizeImage, (req, res) => {
+router.put("/subcategories/:id", handleMulterUpload(uploadSingle), optimizeImage, (req, res) => {
     try {
         const { name, slug, seo_text } = req.body;
         const coverImage = req.optimizedFilenames ? req.optimizedFilenames[0] : null;
@@ -75,7 +93,16 @@ router.put("/subcategories/:id", uploadSingle, optimizeImage, (req, res) => {
 
 router.delete("/subcategories/:id", (req, res) => {
     try {
-        db.deleteSubcategory(req.params.id);
+        // Получаем массив файлов "на удаление" (обложка + все фото всех платьев внутри)
+        const filesToDelete = db.deleteSubcategoryAndFiles(req.params.id);
+        
+        // Физически стираем файлы с диска
+        filesToDelete.forEach(filename => {
+            fs.unlink(path.join(__dirname, "static", filename), (err) => {
+                if (err) console.error("Не удалось удалить файл:", filename, err);
+            });
+        });
+
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -101,7 +128,7 @@ router.get("/products/:id", (req, res) => {
 });
 
 // Обратите внимание: тут мы используем uploadMultiple (до 10 фото за раз)
-router.post("/products", uploadMultiple, optimizeImage, (req, res) => {
+router.post("/products", handleMulterUpload(uploadMultiple), optimizeImage, (req, res) => {
     try {
         // 1. Создаем запись о товаре в БД
         const productId = db.createProduct(req.body);
@@ -124,7 +151,16 @@ router.put("/products/:id", (req, res) => {
 
 router.delete("/products/:id", (req, res) => {
     try {
-        db.deleteProduct(req.params.id);
+        // Получаем массив всех фото этого платья
+        const filesToDelete = db.deleteProductAndFiles(req.params.id);
+        
+        // Физически стираем их с диска
+        filesToDelete.forEach(filename => {
+            fs.unlink(path.join(__dirname, "static", filename), (err) => {
+                if (err) console.error("Не удалось удалить файл:", filename, err);
+            });
+        });
+
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -154,6 +190,71 @@ router.delete("/images/:imageId", (req, res) => {
             });
             // Удаляем запись из БД
             db.deleteProductImage(req.params.imageId);
+        }
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==========================================
+// ОТЗЫВЫ (СКРИНШОТЫ)
+// ==========================================
+
+router.get("/reviews", (req, res) => {
+    try { res.json(db.getAllReviews()); } 
+    catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post("/reviews", handleMulterUpload(uploadMultiple), optimizeImage, (req, res) => {
+    try {
+        if (req.optimizedFilenames && req.optimizedFilenames.length > 0) {
+            db.addReviews(req.optimizedFilenames);
+            res.json({ success: true });
+        } else {
+            res.status(400).json({ error: "Файлы не загружены" });
+        }
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete("/reviews/:id", (req, res) => {
+    try {
+        const item = db.deleteReview(req.params.id);
+        if (item) {
+            fs.unlink(path.join(__dirname, "static", item.filename), (err) => {
+                if (err) console.error("Ошибка удаления файла:", err);
+            });
+        }
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==========================================
+// НАШИ НЕВЕСТЫ (ГАЛЕРЕЯ)
+// ==========================================
+
+// Логика абсолютно идентична отзывам
+router.get("/brides", (req, res) => {
+    try { res.json(db.getAllBrides()); } 
+    catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post("/brides", handleMulterUpload(uploadMultiple), optimizeImage, (req, res) => {
+    try {
+        if (req.optimizedFilenames && req.optimizedFilenames.length > 0) {
+            db.addBrides(req.optimizedFilenames);
+            res.json({ success: true });
+        } else {
+            res.status(400).json({ error: "Файлы не загружены" });
+        }
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete("/brides/:id", (req, res) => {
+    try {
+        const item = db.deleteBride(req.params.id);
+        if (item) {
+            fs.unlink(path.join(__dirname, "static", item.filename), (err) => {
+                if (err) console.error("Ошибка удаления файла:", err);
+            });
         }
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
