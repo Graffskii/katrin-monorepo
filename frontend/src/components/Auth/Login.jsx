@@ -15,7 +15,7 @@ const Login = () => {
     
     try {
       await login(username, password); // предполагается, что login() внутри AuthContext делает запрос к бэку
-      navigate('/admin');
+      navigate('/admin', { replace: true });
     } catch (err) {
         console.log(err)
       setError('Неверный логин или пароль');

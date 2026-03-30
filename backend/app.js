@@ -17,6 +17,8 @@ const { generateToken } = require("./generateToken");
 const catalogRoutes = require("./catalogRoutes");
 const adminRoutes = require("./routes");
 
+const authMiddleware = require("./middleware/authMiddleware"); 
+
 const app = express();
 
 // --- 1. БАЗОВАЯ БЕЗОПАСНОСТЬ (HELMET) ---
@@ -83,6 +85,10 @@ app.get("/api/logout", (req, res) => { // Добавил префикс /api/
     res.json({ message: "Выход выполнен" });
 });
 
+app.get("/api/check-auth", authMiddleware, (req, res) => {
+    // Если authMiddleware пропустил запрос сюда, значит токен жив и валиден
+    res.json({ success: true, user: req.admin });
+});
 
 // --- 3. ОБРАБОТКА ФОРМЫ (С ЗАЩИТОЙ И ПРОВЕРКАМИ) ---
 // Применяем жесткий лимит контактной формы

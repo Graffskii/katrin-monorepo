@@ -59,30 +59,63 @@
         }
 
         html {
-            font-size: 16px; /* Убедимся, что базовый размер установлен */
+            font-size: 16px;
+            /* Убедимся, что базовый размер установлен */
             scroll-behavior: smooth;
         }
+
         body {
             font-family: 'Poppins', sans-serif;
-            color: #4B5563; /* Это наш 'text-main' */
-            font-weight: 300; /* font-light - тонкое начертание по умолчанию */
-            line-height: 2.3; /* leading-relaxed - бОльший межстрочный интервал */
-            -webkit-font-smoothing: antialiased; /* Делает шрифты тоньше и четче на Mac */
+            color: #4B5563;
+            /* Это наш 'text-main' */
+            font-weight: 300;
+            /* font-light - тонкое начертание по умолчанию */
+            line-height: 2.3;
+            /* leading-relaxed - бОльший межстрочный интервал */
+            -webkit-font-smoothing: antialiased;
+            /* Делает шрифты тоньше и четче на Mac */
             -moz-osx-font-smoothing: grayscale;
         }
-        h1, h2, h3, h4, h5, h6 {
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
             font-family: 'Playfair Display', serif;
-            color: #1F2937; /* Это наш 'text-dark' */
-            font-weight: 700; /* Жирное начертание для заголовков */
-            line-height: 1.2; /* Более плотный интервал для крупных текстов */
+            color: #1F2937;
+            /* Это наш 'text-dark' */
+            font-weight: 700;
+            /* Жирное начертание для заголовков */
+            line-height: 1.2;
+            /* Более плотный интервал для крупных текстов */
         }
+
         p {
             margin-bottom: 1rem;
-            line-height: 1.7; /* Отступ после абзацев, как в prose */
+            line-height: 1.7;
+            /* Отступ после абзацев, как в prose */
         }
-        strong, b {
-            font-weight: 600; /* Полужирный, не слишком толстый */
-            color: #374151; /* Чуть темнее основного текста */
+
+        strong,
+        b {
+            font-weight: 600;
+            /* Полужирный, не слишком толстый */
+            color: #374151;
+            /* Чуть темнее основного текста */
+        }
+
+        :root {
+            --swiper-theme-color: #800020 !important;
+            /* Бордовый цвет */
+        }
+
+        .swiper-button-next,
+        .swiper-button-prev {
+            color: var(--swiper-theme-color) !important;
+            /* Уменьшаем размер встроенных стрелок, чтобы они были аккуратнее */
+            transform: scale(0.7);
         }
     </style>
 </head>

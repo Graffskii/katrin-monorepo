@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import MainPage from './components/MainPage/MainPage';
 import AdminPanel from './components/Admin/AdminPanel';
@@ -21,14 +21,49 @@ import ReviewsPage from './pages/ReviewsPage';
 
 // Защищенный маршрут для админ-панели
 const ProtectedRoute = ({ children }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [isChecking, setIsChecking] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  if (!user) {
-    return <Navigate to="/login" />;
+  useEffect(() => {
+      const verifyToken = async () => {
+          try {
+              // Стучимся на бэкенд. Если токен протух, он вернет 403 Unauthorized
+              const res = await fetch('/api/check-auth', { credentials: 'include' });
+              if (res.ok) {
+                  setIsAuthenticated(true);
+              } else {
+                  // Токен невалиден! Очищаем стейт и выкидываем на логин
+                  logout();
+                  setIsAuthenticated(false);
+              }
+          } catch (error) {
+              console.error("Auth check failed", error);
+              setIsAuthenticated(false);
+          } finally {
+              setIsChecking(false);
+          }
+      };
+
+      if (user) {
+          verifyToken();
+      } else {
+          setIsChecking(false);
+      }
+  }, [user, logout]);
+
+  if (isChecking) {
+      // Пока спрашиваем у сервера, показываем крутилку/заглушку, чтобы интерфейс не дергался
+      return <div className="h-screen flex items-center justify-center bg-gray-50 text-gray-500">Проверка доступа...</div>;
+  }
+
+  if (!user || !isAuthenticated) {
+      return <Navigate to="/login" replace />;
   }
 
   return children;
 };
+
 
 function App() {
   return (
@@ -55,7 +90,7 @@ function App() {
 
 
               <Route path="/login" element={<Login />} />
-              <Route path="/admin" element={
+              <Route path="/admin/*" element={
                 <ProtectedRoute>
                   <AdminPanel />
                 </ProtectedRoute>

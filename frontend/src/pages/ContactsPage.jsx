@@ -35,7 +35,7 @@ const ContactsPage = () => {
                         <h2 className="text-3xl font-playfair font-bold text-gray-800">Салон свадебной и вечерней моды KATRIN</h2>
                         <h3 className="text-2xl font-playfair text-gray-800 mt-2">Г. ТОМСК</h3>
                         <div className="mt-8 space-y-4 lg:text-lg text-gray-700 border-t pt-8">
-                            <p><strong>ТЕЛ:</strong> +7 (3822) 51-08-90</p>
+                            <p><strong>ТЕЛ:</strong> +7 (3822) 51‒08‒90</p>
                             <p><strong>АДРЕС:</strong> Проспект Ленина, 95</p>
                             <p><strong>РЕЖИМ РАБОТЫ:</strong> ПН-СБ 10:00-19:00, ВС 11:00-18:00</p>
                         </div>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const FloatingWidgets = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const toggleVisibility = () => {
@@ -24,6 +25,10 @@ const FloatingWidgets = () => {
     });
   };
 
+  if (location.pathname.startsWith('/admin') || location.pathname === '/login') {
+    return null; 
+  }
+  
   return (
     <>
       {/* Кнопка "Наверх" */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ProductPreview from './ProductPreview';
 
 const ProductManager = ({ subcategoryId }) => {
     const [products, setProducts] = useState([]);
@@ -8,6 +9,7 @@ const ProductManager = ({ subcategoryId }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingProductId, setEditingProductId] = useState(null); // null = режим создания
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     
     // Состояние данных формы
     const [formData, setFormData] = useState({
@@ -197,18 +199,18 @@ const ProductManager = ({ subcategoryId }) => {
 
             {/* МОДАЛЬНОЕ ОКНО (УНИВЕРСАЛЬНОЕ) */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl my-8">
-                        <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-xl z-10">
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-0 sm:p-4 z-[100]"> 
+                    <div className="bg-white sm:rounded-xl shadow-2xl w-full h-full sm:h-auto sm:max-h-[90vh] max-w-3xl flex flex-col">
+                        <div className="p-4 sm:p-6 border-b flex justify-between items-center bg-gray-50 flex-shrink-0">
                             <h3 className="text-xl font-bold text-gray-800">
                                 {editingProductId ? `Редактирование: ${formData.name}` : 'Новое платье'}
                             </h3>
                             <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="text-gray-400 hover:text-gray-800 text-2xl">&times;</button>
                         </div>
                         
-                        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-grow">
                             {/* ... (Текстовые поля остались без изменений) ... */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Название *</label>
                                     <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-gray-300 rounded-md p-2.5 outline-none focus:ring-2 focus:ring-primary/50" />
@@ -218,7 +220,7 @@ const ProductManager = ({ subcategoryId }) => {
                                     <input type="text" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} className="w-full border border-gray-300 rounded-md p-2.5 outline-none focus:ring-2 focus:ring-primary/50" />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Цена (₽) *</label>
                                     <input required type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="w-full border border-gray-300 rounded-md p-2.5 outline-none focus:ring-2 focus:ring-primary/50" />
@@ -279,15 +281,35 @@ const ProductManager = ({ subcategoryId }) => {
                                 <label htmlFor="is_published" className="text-sm font-medium text-gray-800">Опубликовать на сайте</label>
                             </div>
 
-                            <div className="flex justify-end gap-3 pt-6 border-t mt-6">
-                                <button type="button" onClick={() => { setIsModalOpen(false); resetForm(); }} className="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md font-medium transition-colors">Отмена</button>
-                                <button type="submit" disabled={isSubmitting} className={`px-5 py-2.5 text-white rounded-md font-medium transition-colors ${isSubmitting ? 'bg-primary/50 cursor-wait' : 'bg-primary hover:bg-primary/90'}`}>
-                                    {isSubmitting ? 'Сохранение...' : (editingProductId ? 'Сохранить изменения' : 'Создать платье')}
+                            <div className="flex flex-col-reverse sm:flex-row justify-between items-center pt-6 border-t mt-6 gap-4">
+                                {/* КНОПКА ПРЕДПРОСМОТРА СЛЕВА */}
+                                <button 
+                                    type="button" 
+                                    onClick={() => setIsPreviewOpen(true)}
+                                    className="w-full sm:w-auto px-5 py-3 text-primary bg-primary/10 hover:bg-primary/20 rounded-md font-medium transition-colors text-center"
+                                >
+                                    👀 Предпросмотр
                                 </button>
+                                
+                                {/* Правые кнопки */}
+                                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                    <button type="button" onClick={() => { setIsModalOpen(false); resetForm(); }} className="w-full sm:w-auto px-5 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md font-medium transition-colors text-center">Отмена</button>
+                                    <button type="submit" disabled={isSubmitting} className={`w-full sm:w-auto px-5 py-3 text-white rounded-md font-medium transition-colors text-center ${isSubmitting ? 'bg-primary/50 cursor-wait' : 'bg-primary hover:bg-primary/90'}`}>
+                                        {isSubmitting ? 'Сохранение...' : (editingProductId ? 'Сохранить' : 'Создать платье')}
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>
                 </div>
+            )}
+
+            {isPreviewOpen && (
+                <ProductPreview 
+                    formData={formData} 
+                    existingImages={existingImages} 
+                    onClose={() => setIsPreviewOpen(false)} 
+                />
             )}
         </div>
     );
